@@ -100,8 +100,15 @@
     .grand-total-card{ background:var(--navy); color:#fff; border-radius:14px; padding:16px; text-align:center; }
     .grand-total-card .label{ font-size:12px; opacity:0.8; text-transform:uppercase; letter-spacing:0.05em; }
     .grand-total-card .value{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; margin-top:4px; }
-    #valuation-by-location{ display:flex; flex-direction:column; gap:10px; }
-    @media (min-width:640px){ #valuation-by-location{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); } }
+
+    .val-item-row{ display:flex; flex-direction:column; gap:5px; font-size:13px; padding:11px 0; border-bottom:1px dashed var(--border); }
+    .val-item-row:last-child{ border-bottom:none; }
+    .val-item-top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    .val-item-name{ font-weight:700; color:var(--text); font-size:14px; }
+    .val-item-loc{ font-size:10.5px; color:var(--navy); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--navy-soft); padding:2px 7px; border-radius:6px; white-space:nowrap; }
+    .val-item-figs{ display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--text-soft); }
+    .val-item-figs b{ color:var(--text); }
+    .val-item-value{ font-weight:700; color:var(--gold); font-size:13px; }
 
     .sales-loc-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px dashed var(--border); font-size:13.5px; gap:8px; }
     .sales-loc-row:last-child{ border-bottom:none; }
@@ -158,6 +165,14 @@
       </div>
     </header>
 
+    <div class="panel" id="branch-links-panel">
+      <div class="panel-head">🔗 Branch-Specific Opening Stock Links</div>
+      <div class="panel-body">
+        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Share each link below with only that branch's staff — opening it locks the Opening Stock Entry page to that outlet so they can't accidentally enter stock for another branch.</p>
+        <div id="branch-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;"></div>
+      </div>
+    </div>
+
     <div class="top-tab-row">
       <button class="top-tab-btn active" id="top-tab-stock" type="button" onclick="switchTopTab('stock')">Stock</button>
       <button class="top-tab-btn" id="top-tab-valuation" type="button" onclick="switchTopTab('valuation')">Valuation</button>
@@ -169,6 +184,7 @@
     <div class="panel" id="view-stock">
       <div class="panel-head">📊 Opening + Stock In − Sales/Dispatched = Current</div>
       <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Opening stock comes from your monthly baseline (see <a href="opening-stock-entry.html" style="color:var(--navy); font-weight:700;">Opening Stock Entry</a>) plus this month's activity. Set a baseline for each branch at the start of every month for accurate figures.</p>
         <div class="filter-row">
           <select id="dash-location-filter" class="filter-select">
             <option value="All">All Locations</option>
@@ -202,7 +218,7 @@
 
     <!-- =============== VALUATION =============== -->
     <div class="panel" id="view-valuation" hidden>
-      <div class="panel-head">💰 Current Stock Valuation</div>
+      <div class="panel-head">💰 Current Stock Valuation — Item Wise</div>
       <div class="panel-body">
         <div class="filter-row">
           <select id="val-location-filter" class="filter-select">
@@ -212,13 +228,22 @@
             <option value="Vishrambagh">Vishrambagh</option>
             <option value="Miraj">Miraj</option>
           </select>
+          <select id="val-category-filter" class="filter-select">
+            <option value="All">All Categories</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <input id="val-search-input" class="filter-input search-input" type="text" placeholder="Search product name...">
           <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadValuation()">🔄 Load Valuation</button>
         </div>
+
         <div id="valuation-grand-total" class="grand-total-card" style="display:none;">
           <div class="label">Grand Total Stock Value (Sale Rate)</div>
           <div class="value" id="valuation-grand-value">₹0</div>
         </div>
-        <div id="valuation-by-location"></div>
+
+        <label class="history-section-label">Item Wise Valuation</label>
+        <div id="valuation-items-list" class="scroll-box grid-box">Choose filters above and tap "Load Valuation".</div>
       </div>
     </div>
 
@@ -356,6 +381,7 @@
         var r = rows[i];
         var outLabel = (r.location === "Production House") ? "Dispatched Out" : "Sales";
         var flag = !r.hasMasterRecord ? '<div class="dash-row-flag">⚠ Not in Product Master (rate unknown)</div>' : '';
+        var baselineFlag = (r.location !== "Production House" && !r.hasBaseline) ? '<div class="dash-row-flag">⚠ No opening baseline set this month</div>' : '';
         html += `
           <div class="dash-row">
             <div class="dash-row-top">
@@ -370,6 +396,7 @@
             </div>
             <div class="dash-row-value">Value: ₹${r.value.toLocaleString('en-IN')} (@ ₹${r.rate}/${r.unit})</div>
             ${flag}
+            ${baselineFlag}
           </div>`;
       }
       box.innerHTML = html;
@@ -379,10 +406,12 @@
 
     function loadValuation() {
       var location = $("val-location-filter").value;
+      var category = $("val-category-filter").value;
+      var search = $("val-search-input").value;
       setStatus("Computing valuation...", "");
-      $("valuation-by-location").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      $("valuation-items-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
 
-      executeJsonpTransfer({ action: "getValuation", location: location }, function(res){
+      executeJsonpTransfer({ action: "getValuation", location: location, category: category, search: search }, function(res){
         if (res && res.success) {
           renderValuation(res.data);
           setStatus("Valuation loaded.", "success");
@@ -394,21 +423,54 @@
       $("valuation-grand-total").style.display = "block";
       $("valuation-grand-value").innerText = "₹" + (data.grandSaleValue || 0).toLocaleString('en-IN');
 
-      var box = $("valuation-by-location");
-      var locs = Object.keys(data.byLocation || {});
-      if (locs.length === 0) {
-        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No stock found — try the Stock tab to see whether recent activity is present.</div>';
+      var box = $("valuation-items-list");
+      var items = data.items || [];
+      if (items.length === 0) {
+        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No stock found for these filters.</div>';
         return;
       }
       var html = "";
-      locs.forEach(function(loc){
-        var v = data.byLocation[loc];
+      items.forEach(function(it){
         html += `
-          <div class="val-loc-card">
-            <div class="val-loc-title">${loc}</div>
-            <div class="val-loc-figs"><span>Sale Value</span><b>₹${v.saleValue.toLocaleString('en-IN')}</b></div>
-            <div class="val-loc-figs"><span>Cost Value</span><b>₹${v.costValue.toLocaleString('en-IN')}</b></div>
+          <div class="val-item-row">
+            <div class="val-item-top">
+              <span class="val-item-name">${it.product}</span>
+              <span class="val-item-loc">${it.location}</span>
+            </div>
+            <div class="val-item-figs">
+              <span>Category: <b>${it.category || '—'}</b></span>
+              <span>Stock: <b>${it.stock} ${it.unit}</b></span>
+              <span>Sale Rate: <b>₹${it.rate}</b></span>
+              <span>Cost Rate: <b>₹${it.cost}</b></span>
+            </div>
+            <div class="val-item-value">Sale Value: ₹${it.saleValue.toLocaleString('en-IN')} &nbsp;|&nbsp; Cost Value: ₹${it.costValue.toLocaleString('en-IN')}</div>
           </div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function loadValuationCategories() {
+      executeJsonpTransfer({ action: "getCategories" }, function(res){
+        var select = $("val-category-filter");
+        select.innerHTML = '<option value="All">All Categories</option>';
+        if (res && res.success && res.data) {
+          res.data.forEach(function(cat){
+            var opt = document.createElement("option");
+            opt.value = cat; opt.innerText = cat;
+            select.appendChild(opt);
+          });
+        }
+      }, function(e){});
+    }
+
+    var ALL_LOCATIONS_ADMIN = ["Production House", "Ram Mandir", "Vishrambagh", "Miraj"];
+    function renderBranchLinksList() {
+      var base = window.location.origin + window.location.pathname.replace(/[^\/]*$/, "") + "opening-stock-entry.html";
+      var box = $("branch-links-list");
+      var html = "";
+      ALL_LOCATIONS_ADMIN.forEach(function(loc){
+        var link = base + "?location=" + encodeURIComponent(loc);
+        html += '<div><b>' + loc + ':</b> <a href="' + link + '" target="_blank" style="color:var(--navy);">' + link + '</a></div>';
       });
       box.innerHTML = html;
     }
@@ -607,6 +669,8 @@
       $("dash-month-input").value = todayStr.slice(0,7);
       loadStockDashboard();
       loadDiagnostics();
+      loadValuationCategories();
+      renderBranchLinksList();
     });
   </script>
 </body>
