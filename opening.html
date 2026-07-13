@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raghuvir Sweets — Opening Stock Entry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght=600&family=Inter:wght=400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#F3EDE2; --surface:#FFFFFF; --text:#261E16; --text-soft:#706254; --border:#DFD2BF;
+      --navy:#2C4A5E; --navy-soft:#DCE6EA; --gold:#96731E; --gold-soft:#F3E7C9;
+      --green:#3D5E26; --green-soft:#DFE8D5; --radius:16px;
+    }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
+    .wrap{ width:100%; max-width:900px; margin:0 auto; padding:16px 14px 48px; }
+
+    header{ text-align:center; margin-bottom:16px; }
+    header h1{ font-family:'Fraunces',serif; font-size:clamp(20px,4vw,26px); font-weight:600; margin:0; color:var(--text); }
+    header p{ margin:3px 0 0; font-size:13px; color:var(--text-soft); font-weight:500; }
+    .nav-links{ text-align:center; margin-top:8px; }
+    .nav-links a{ font-size:12.5px; font-weight:700; color:var(--navy); text-decoration:none; background:var(--navy-soft); padding:7px 12px; border-radius:8px; }
+
+    .panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
+    .panel-head{ padding:14px 16px; font-family:'Fraunces',serif; font-size:17px; font-weight:600; border-bottom:1px solid var(--border); background:var(--gold-soft); color:var(--gold); }
+    .panel-body{ padding:16px; display:flex; flex-direction:column; gap:14px; }
+
+    .form-row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .form-field{ flex:1 1 200px; display:flex; flex-direction:column; gap:5px; }
+    .form-field label{ font-size:11px; text-transform:uppercase; letter-spacing:0.05em; font-weight:700; color:var(--text-soft); }
+    .form-select, .form-input{
+      padding:11px 12px; border:1px solid var(--border); border-radius:10px;
+      font-size:14px; font-family:inherit; background:#fff; color:var(--text); outline:none; width:100%;
+    }
+
+    .master-btn {
+      padding: 14px 24px; border: none; border-radius: 10px;
+      font-size: 14.5px; font-weight: 700; font-family: inherit; color: #fff;
+      cursor: pointer; background: var(--gold); box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .master-btn:active { opacity: 0.92; transform: translateY(1px); }
+    .master-btn.save{ background:var(--green); width:100%; padding:16px; font-size:15.5px; }
+    .master-btn.secondary{ background:var(--navy); }
+
+    .history-section-label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-soft); font-weight:700; margin-top: 4px; }
+
+    .items-grid{ display:grid; grid-template-columns:1fr; gap:10px; max-height:520px; overflow-y:auto; border:1px solid var(--border); border-radius:12px; background:#FAF7F2; padding:10px; }
+    @media (min-width:640px){ .items-grid{ grid-template-columns:repeat(2,1fr); } }
+    @media (min-width:980px){ .items-grid{ grid-template-columns:repeat(3,1fr); } }
+
+    .item-card{ background:#fff; border:1px solid var(--border); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:6px; }
+    .item-card-name{ font-weight:700; font-size:13.5px; color:var(--text); }
+    .item-card-meta{ font-size:11px; color:var(--text-soft); }
+    .item-card-qty-row{ display:flex; align-items:center; gap:8px; margin-top:2px; }
+    .item-card-qty-row label{ font-size:11px; color:var(--text-soft); font-weight:700; }
+    .item-qty-input{
+      flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:8px;
+      font-size:14px; font-family:inherit; text-align:right; outline:none;
+    }
+    .item-qty-input.touched{ border-color:var(--gold); background:var(--gold-soft); }
+
+    .status-msg-bar{ min-height:18px; font-size:13px; font-weight: 600; text-align: center; }
+    .status-msg-bar.success{ color:var(--green); }
+    .status-msg-bar.error{ color:var(--terracotta,#A63C19); }
+
+    .summary-bar{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:var(--navy-soft); border-radius:10px; padding:12px 14px; font-size:13px; font-weight:700; color:var(--navy); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Raghuvir Sweets</h1>
+        <p>Opening Stock Entry — Set Once Per Month</p>
+      </div>
+      <div class="nav-links">
+        <a href="admin-dashboard.html">→ Admin Dashboard</a>
+        <a href="production-dispatch.html">→ Production/Dispatch Desk</a>
+      </div>
+    </header>
+
+    <div class="panel">
+      <div class="panel-head">📥 Enter Opening Stock</div>
+      <div class="panel-body">
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Month</label>
+            <input id="os-month" class="form-input" type="month">
+          </div>
+          <div class="form-field">
+            <label>Location</label>
+            <select id="os-location" class="form-select">
+              <option value="Production House">Production House</option>
+              <option value="Ram Mandir">Ram Mandir</option>
+              <option value="Vishrambagh">Vishrambagh</option>
+              <option value="Miraj">Miraj</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Category / Group</label>
+            <select id="os-category" class="form-select" onchange="loadItemsForCategory()">
+              <option value="">Loading categories...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <input id="os-item-search" class="form-input" type="text" placeholder="Search within loaded items..." oninput="filterVisibleItems(this.value)" style="flex:1 1 100%;">
+        </div>
+
+        <div class="summary-bar" id="os-summary-bar" style="display:none;">
+          <span id="os-summary-text">0 items loaded</span>
+          <span id="os-summary-touched">0 entered</span>
+        </div>
+
+        <label class="history-section-label">Items in this Category</label>
+        <div id="os-items-grid" class="items-grid">Pick a category above to load its items.</div>
+
+        <button class="master-btn save" type="button" onclick="saveOpeningStock()">💾 Save Opening Stock for this Month &amp; Location</button>
+
+        <div id="os-status" class="status-msg-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function $(id){ return document.getElementById(id); }
+
+    // ⚠️ Same Web App URL as the other two pages.
+    var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFSBEAxxd1KQjYeeTBJZ86mABfH4ojsuyqXcLjMZ9NBfvUYJ9SS3nqmrMefEgDsU-w/exec";
+
+    var jsonpCounter = 0;
+    function executeJsonpTransfer(params, successCallback, failureCallback) {
+      jsonpCounter++;
+      var cbName = "jsonpCallback_" + jsonpCounter + "_" + Date.now();
+      var scriptElement = document.createElement("script");
+      var networkTimeout = setTimeout(function(){ removeScript(); failureCallback(new Error("Timeout")); }, 20000);
+
+      function removeScript(){
+        clearTimeout(networkTimeout);
+        try { delete window[cbName]; } catch(e) { window[cbName] = undefined; }
+        if (scriptElement.parentNode) scriptElement.parentNode.removeChild(scriptElement);
+      }
+      window[cbName] = function(data){ removeScript(); successCallback(data); };
+      var queryParams = Object.keys(params).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(params[k])).join("&");
+      scriptElement.src = APPS_SCRIPT_URL + "?" + queryParams + "&callback=" + cbName;
+      scriptElement.onerror = function(){ removeScript(); failureCallback(new Error("Network Error")); };
+      document.body.appendChild(scriptElement);
+    }
+
+    function setStatus(msg, cls) {
+      var bar = $("os-status");
+      bar.innerText = msg;
+      bar.className = "status-msg-bar " + (cls || "");
+    }
+
+    var currentItems = [];
+
+    function loadCategories() {
+      executeJsonpTransfer({ action: "getCategories" }, function(res){
+        var select = $("os-category");
+        select.innerHTML = '<option value="">Select a category...</option>';
+        if (res && res.success && res.data && res.data.length > 0) {
+          res.data.forEach(function(cat){
+            var opt = document.createElement("option");
+            opt.value = cat; opt.innerText = cat;
+            select.appendChild(opt);
+          });
+        } else {
+          select.innerHTML = '<option value="">No categories found</option>';
+        }
+      }, function(e){ setStatus("Could not load categories.", "error"); });
+    }
+
+    function loadItemsForCategory() {
+      var category = $("os-category").value;
+      if (!category) {
+        $("os-items-grid").innerHTML = "Pick a category above to load its items.";
+        $("os-summary-bar").style.display = "none";
+        return;
+      }
+      $("os-items-grid").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">Loading items...</div>';
+      setStatus("Loading items in " + category + "...", "");
+
+      executeJsonpTransfer({ action: "getProductsByCategory", category: category }, function(res){
+        if (res && res.success) {
+          currentItems = res.data || [];
+          renderItemsGrid(currentItems);
+          $("os-summary-bar").style.display = "flex";
+          updateSummary();
+          setStatus("Loaded " + currentItems.length + " items in " + category + ".", "success");
+        } else { setStatus("Failed to load items.", "error"); }
+      }, function(e){ setStatus("Items connection timeout.", "error"); });
+    }
+
+    function renderItemsGrid(items) {
+      var box = $("os-items-grid");
+      if (!items || items.length === 0) {
+        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No items in this category.</div>';
+        return;
+      }
+      var html = "";
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        html += `
+          <div class="item-card" data-name="${it.name.toLowerCase()}">
+            <div class="item-card-name">${it.name}</div>
+            <div class="item-card-meta">Code: ${it.barcode || '—'} | Godown Stock: ${it.godownStock} ${it.unit}</div>
+            <div class="item-card-qty-row">
+              <label>Opening Qty</label>
+              <input class="item-qty-input" type="number" step="any" placeholder="0"
+                     data-product="${it.name.replace(/"/g,'&quot;')}"
+                     oninput="this.classList.toggle('touched', this.value !== ''); updateSummary();">
+            </div>
+          </div>`;
+      }
+      box.innerHTML = html;
+    }
+
+    function filterVisibleItems(query) {
+      var q = (query || "").trim().toLowerCase();
+      var cards = document.querySelectorAll("#os-items-grid .item-card");
+      cards.forEach(function(card){
+        var name = card.getAttribute("data-name") || "";
+        card.style.display = (!q || name.indexOf(q) !== -1) ? "flex" : "none";
+      });
+    }
+
+    function updateSummary() {
+      var inputs = document.querySelectorAll("#os-items-grid .item-qty-input");
+      var touched = 0;
+      inputs.forEach(function(inp){ if (inp.value !== "") touched++; });
+      $("os-summary-text").innerText = currentItems.length + " items loaded";
+      $("os-summary-touched").innerText = touched + " entered";
+    }
+
+    function saveOpeningStock() {
+      var month = $("os-month").value;
+      var location = $("os-location").value;
+      if (!month) { setStatus("Please select a month first.", "error"); return; }
+      if (!location) { setStatus("Please select a location first.", "error"); return; }
+
+      var inputs = document.querySelectorAll("#os-items-grid .item-qty-input");
+      var entries = [];
+      inputs.forEach(function(inp){
+        if (inp.value === "") return;
+        var qty = parseFloat(inp.value);
+        if (isNaN(qty)) return;
+        entries.push({ product: inp.getAttribute("data-product"), qty: qty });
+      });
+
+      if (entries.length === 0) { setStatus("Enter at least one opening stock quantity first.", "error"); return; }
+
+      if (!confirm("Save opening stock for " + entries.length + " item(s) — " + location + ", " + month + "?\n\nRe-saving the same month/location will UPDATE existing entries, not duplicate them.")) return;
+
+      setStatus("Saving opening stock...", "");
+      executeJsonpTransfer({
+        action: "saveOpeningStockBatch",
+        month: month, location: location,
+        entries: JSON.stringify(entries)
+      }, function(res){
+        if (res && res.success) {
+          setStatus("Saved! " + res.data.updated + " updated, " + res.data.appended + " newly added.", "success");
+        } else {
+          setStatus("Failed to save: " + (res && res.error ? res.error : "unknown error"), "error");
+        }
+      }, function(e){ setStatus("Save connection timeout.", "error"); });
+    }
+
+    window.addEventListener('DOMContentLoaded', function () {
+      var todayStr = new Date().toISOString().slice(0,10);
+      $("os-month").value = todayStr.slice(0,7);
+      loadCategories();
+    });
+  </script>
+</body>
+</html>
