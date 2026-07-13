@@ -74,10 +74,6 @@
         <h1>Raghuvir Sweets</h1>
         <p>Opening Stock Entry — Set Once Per Month</p>
       </div>
-      <div class="nav-links">
-        <a href="admin-dashboard.html">→ Admin Dashboard</a>
-        <a href="production-dispatch.html">→ Production/Dispatch Desk</a>
-      </div>
     </header>
 
     <div class="panel">
@@ -89,7 +85,7 @@
             <label>Month</label>
             <input id="os-month" class="form-input" type="month">
           </div>
-          <div class="form-field">
+          <div class="form-field" id="os-location-field">
             <label>Location</label>
             <select id="os-location" class="form-select">
               <option value="Production House">Production House</option>
@@ -97,6 +93,7 @@
               <option value="Vishrambagh">Vishrambagh</option>
               <option value="Miraj">Miraj</option>
             </select>
+            <div id="os-location-locked-tag" style="display:none; font-size:12px; font-weight:700; color:var(--gold); background:var(--gold-soft); padding:10px 12px; border-radius:10px;"></div>
           </div>
           <div class="form-field">
             <label>Category / Group</label>
@@ -109,6 +106,15 @@
         <div class="form-row">
           <input id="os-item-search" class="form-input" type="text" placeholder="Search within loaded items..." oninput="filterVisibleItems(this.value)" style="flex:1 1 100%;">
         </div>
+
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-field" style="flex:1 1 160px;">
+            <label>Quick Fill (sample value)</label>
+            <input id="os-quickfill-value" class="form-input" type="number" step="any" placeholder="e.g. 10">
+          </div>
+          <button class="master-btn secondary" type="button" onclick="quickFillVisible()" style="flex:1 1 220px;">⚡ Fill All Visible Items With This</button>
+        </div>
+        <p style="font-size:11.5px; color:var(--text-soft); margin:0;">Handy for quickly seeding placeholder numbers so you can see the dashboard populated — review/edit them below before saving.</p>
 
         <div class="summary-bar" id="os-summary-bar" style="display:none;">
           <span id="os-summary-text">0 items loaded</span>
@@ -262,17 +268,55 @@
         entries: JSON.stringify(entries)
       }, function(res){
         if (res && res.success) {
-          setStatus("Saved! " + res.data.updated + " updated, " + res.data.appended + " newly added.", "success");
+          setStatus("Saved! " + res.updated + " updated, " + res.appended + " newly added.", "success");
         } else {
           setStatus("Failed to save: " + (res && res.error ? res.error : "unknown error"), "error");
         }
       }, function(e){ setStatus("Save connection timeout.", "error"); });
     }
 
+    function quickFillVisible() {
+      var val = $("os-quickfill-value").value;
+      if (val === "") { setStatus("Enter a sample value first.", "error"); return; }
+      var cards = document.querySelectorAll("#os-items-grid .item-card");
+      var filledCount = 0;
+      cards.forEach(function(card){
+        if (card.style.display === "none") return; // skip hidden (filtered-out) cards
+        var input = card.querySelector(".item-qty-input");
+        if (input) {
+          input.value = val;
+          input.classList.add("touched");
+          filledCount++;
+        }
+      });
+      updateSummary();
+      setStatus("Filled " + filledCount + " visible item(s) with sample value " + val + ". Review, then Save.", "success");
+    }
+
+    var ALL_LOCATIONS = ["Production House", "Ram Mandir", "Vishrambagh", "Miraj"];
+
+    function applyLockedLocationFromUrl() {
+      var urlParams = new URLSearchParams(window.location.search);
+      var lockedLocation = urlParams.get('location');
+      if (!lockedLocation) return false;
+
+      // Match case-insensitively against the known location list
+      var matched = ALL_LOCATIONS.find(function(loc){ return loc.toLowerCase() === lockedLocation.toLowerCase(); });
+      if (!matched) return false;
+
+      $("os-location").value = matched;
+      $("os-location").disabled = true;
+      $("os-location").style.display = "none";
+      $("os-location-locked-tag").style.display = "block";
+      $("os-location-locked-tag").innerText = "🔒 Locked to: " + matched;
+      return true;
+    }
+
     window.addEventListener('DOMContentLoaded', function () {
       var todayStr = new Date().toISOString().slice(0,10);
       $("os-month").value = todayStr.slice(0,7);
       loadCategories();
+      applyLockedLocationFromUrl();
     });
   </script>
 </body>
