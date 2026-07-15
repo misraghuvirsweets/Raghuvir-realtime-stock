@@ -497,7 +497,7 @@
         return;
       }
       if (!confirm("Are you sure you want to push this total transaction batch array containing " + centralBatchCollection.length + " logged line items?\n\nStock will be auto " +
-        (currentActiveMode === "in" ? "increased (+)" : "reduced (-) at Production House and increased (+) at the branch") + " for each item.")) return;
+        (currentActiveMode === "in" ? "increased (+)" : "reduced (-) at Savali Factory and increased (+) at the branch") + " for each item.")) return;
 
       setLogStatus("Uploading records payload package to Cloud Sheets server...", "");
       var serializedBatch = JSON.stringify(centralBatchCollection);
