@@ -88,7 +88,6 @@
           <div class="form-field" id="os-location-field">
             <label>Location</label>
             <select id="os-location" class="form-select">
-              <option value="Production House">Production House</option>
               <option value="Ram Mandir">Ram Mandir</option>
               <option value="Vishrambagh">Vishrambagh</option>
               <option value="Miraj">Miraj</option>
@@ -293,7 +292,7 @@
       setStatus("Filled " + filledCount + " visible item(s) with sample value " + val + ". Review, then Save.", "success");
     }
 
-    var ALL_LOCATIONS = ["Production House", "Ram Mandir", "Vishrambagh", "Miraj"];
+    var ALL_LOCATIONS = ["Ram Mandir", "Vishrambagh", "Miraj"];
 
     function applyLockedLocationFromUrl() {
       var urlParams = new URLSearchParams(window.location.search);
