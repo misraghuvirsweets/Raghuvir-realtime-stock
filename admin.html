@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Raghuvir Sweets — Admin Dashboard</title>
+  <title>Raghuvir Sweets & Bakers — Admin Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght=600&family=Inter:wght=400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -156,7 +156,7 @@
   <div class="wrap">
     <header>
       <div>
-        <h1>Raghuvir Sweets</h1>
+        <h1>Raghuvir Sweets & Bakers</h1>
         <p>Admin Dashboard — Live Stock, Valuation &amp; Sales</p>
       </div>
       <div class="nav-links">
@@ -238,7 +238,7 @@
         </div>
 
         <div id="valuation-grand-total" class="grand-total-card" style="display:none;">
-          <div class="label">Grand Total Stock Value (Sale Rate)</div>
+          <div class="label">Total Stock Value</div>
           <div class="value" id="valuation-grand-value">₹0</div>
         </div>
 
@@ -293,6 +293,7 @@
       <div class="panel-head">🔧 System Status</div>
       <div class="panel-body">
         <div id="diag-content" class="diag-line">Loading system status...</div>
+        <button class="master-btn" type="button" style="margin-top:8px;" onclick="refreshProductCache()">⚡ Refresh Fast-Lookup Cache Now</button>
       </div>
     </div>
 
@@ -439,11 +440,9 @@
             </div>
             <div class="val-item-figs">
               <span>Category: <b>${it.category || '—'}</b></span>
-              <span>Stock: <b>${it.stock} ${it.unit}</b></span>
-              <span>Sale Rate: <b>₹${it.rate}</b></span>
-              <span>Cost Rate: <b>₹${it.cost}</b></span>
+              <span>Remaining Stock: <b>${it.stock} ${it.unit}</b></span>
             </div>
-            <div class="val-item-value">Sale Value: ₹${it.saleValue.toLocaleString('en-IN')} &nbsp;|&nbsp; Cost Value: ₹${it.costValue.toLocaleString('en-IN')}</div>
+            <div class="val-item-value">Stock Value: ₹${it.saleValue.toLocaleString('en-IN')} &nbsp;(${it.stock} ${it.unit} × ₹${it.rate}/${it.unit})</div>
           </div>`;
       });
       box.innerHTML = html;
@@ -643,6 +642,14 @@
     function backToGodownList() {
       $("godown-history-view").style.display = "none";
       $("godown-list-view").style.display = "block";
+    }
+
+    function refreshProductCache() {
+      setStatus("Refreshing fast-lookup cache...", "");
+      executeJsonpTransfer({ action: "refreshProductCache" }, function(res){
+        if (res && res.success) setStatus("Fast-lookup cache refreshed — barcode scans will use the latest rates now.", "success");
+        else setStatus("Failed to refresh cache.", "error");
+      }, function(e){ setStatus("Cache refresh connection timeout.", "error"); });
     }
 
     function loadDiagnostics() {
