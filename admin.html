@@ -177,6 +177,7 @@
       <button class="top-tab-btn active" id="top-tab-stock" type="button" onclick="switchTopTab('stock')">Stock</button>
       <button class="top-tab-btn" id="top-tab-valuation" type="button" onclick="switchTopTab('valuation')">Valuation</button>
       <button class="top-tab-btn" id="top-tab-sales" type="button" onclick="switchTopTab('sales')">Sales (POS)</button>
+      <button class="top-tab-btn" id="top-tab-links" type="button" onclick="switchTopTab('links')">Links</button>
       <button class="top-tab-btn" id="top-tab-godown" type="button" onclick="switchTopTab('godown')">Godown List</button>
     </div>
 
@@ -269,6 +270,15 @@
       </div>
     </div>
 
+    <!-- =============== LINKS (category-wise manual entry links) =============== -->
+    <div class="panel" id="view-links" hidden>
+      <div class="panel-head">🔗 Category-Wise Manual Entry Links</div>
+      <div class="panel-body">
+        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Each link below opens the Production/Dispatch Desk with Manual Entry pre-loaded for that category — handy for filling in stock without scanning barcodes, one group at a time.</p>
+        <div id="category-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading categories...</div>
+      </div>
+    </div>
+
     <!-- =============== QUICK GODOWN LIST =============== -->
     <div class="panel" id="view-godown" hidden>
       <div class="panel-head">🏭 Godown Stock (Product Master)</div>
@@ -331,13 +341,15 @@
       bar.className = "status-msg-bar " + (cls || "");
     }
 
+    var categoryLinksLoaded = false;
     function switchTopTab(tab) {
-      ["stock","valuation","sales","godown"].forEach(function(t){
+      ["stock","valuation","sales","links","godown"].forEach(function(t){
         $("top-tab-" + t).classList.toggle("active", t === tab);
         $("view-" + t).hidden = (t !== tab);
       });
       if (tab === 'sales' && $("sales-month-filter").options.length <= 1) loadSalesMonths();
       if (tab === 'godown' && !godownListCache.length) loadGodownList();
+      if (tab === 'links' && !categoryLinksLoaded) loadCategoryLinks();
     }
 
     var currentPeriodType = 'day';
@@ -472,6 +484,25 @@
         html += '<div><b>' + loc + ':</b> <a href="' + link + '" target="_blank" style="color:var(--navy);">' + link + '</a></div>';
       });
       box.innerHTML = html;
+    }
+
+    function loadCategoryLinks() {
+      var box = $("category-links-list");
+      box.innerHTML = "Loading categories...";
+      executeJsonpTransfer({ action: "getCategories" }, function(res){
+        if (res && res.success && res.data && res.data.length > 0) {
+          var base = window.location.origin + window.location.pathname.replace(/[^\/]*$/, "") + "production-dispatch.html";
+          var html = "";
+          res.data.forEach(function(cat){
+            var link = base + "?category=" + encodeURIComponent(cat);
+            html += '<div><b>' + cat + ':</b> <a href="' + link + '" target="_blank" style="color:var(--navy);">' + link + '</a></div>';
+          });
+          box.innerHTML = html;
+          categoryLinksLoaded = true;
+        } else {
+          box.innerHTML = '<div style="color:#888;">No categories found in Product Master.</div>';
+        }
+      }, function(e){ box.innerHTML = '<div style="color:#888;">Could not load categories.</div>'; });
     }
 
     function loadSalesMonths() {
