@@ -225,6 +225,7 @@
             <select id="manual-category-select" class="manual-form-select" onchange="loadManualItemsForCategory()">
               <option value="">Loading categories...</option>
             </select>
+            <div id="manual-category-locked-tag" style="display:none; font-size:12.5px; font-weight:700; color:var(--text); background:#F2E8DB; padding:11px 14px; border-radius:10px; flex:1 1 160px;"></div>
           </div>
           <input id="manual-item-search" class="manual-form-input" type="text" placeholder="Search within loaded items..." oninput="filterManualVisibleItems(this.value)" style="width:100%;">
 
@@ -292,6 +293,7 @@
 
     var urlParamsForPage = new URLSearchParams(window.location.search);
     var manualPresetCategory = urlParamsForPage.get('category'); // used by category-wise links from the Admin Dashboard's Links tab
+    var categoryLockActive = !!manualPresetCategory; // if a category came in via the URL, lock it for this whole session
     var manualCategoriesLoaded = false;
 
     var jsonpCounter = 0;
@@ -596,7 +598,7 @@
       $("manual-entry-panel").style.display = "flex";
 
       if (!manualCategoriesLoaded) loadManualCategories();
-      else if (manualPresetCategory) applyManualPresetCategory();
+      else if (categoryLockActive) applyManualPresetCategory();
     }
 
     function closeManualEntryPanel() {
@@ -617,22 +619,30 @@
             select.appendChild(opt);
           });
           manualCategoriesLoaded = true;
-          applyManualPresetCategory();
+          if (categoryLockActive) applyManualPresetCategory();
         } else {
           select.innerHTML = '<option value="">No categories found</option>';
         }
       }, function(e){ setLogStatus("Could not load categories.", "error"); });
     }
 
+    // LOCKS the category picker to the value that came in via ?category=... in the URL, so
+    // someone opening a category-specific link can only ever enter stock for that one category —
+    // the dropdown itself is hidden (not just pre-selected), matching how branch links are
+    // locked on the Opening Stock Entry page. This re-applies every time the panel is opened,
+    // so the lock stays in effect for the whole session on this link, not just the first time.
     function applyManualPresetCategory() {
       if (!manualPresetCategory) return;
       var select = $("manual-category-select");
       var matched = Array.from(select.options).some(function(o){ return o.value === manualPresetCategory; });
-      if (matched) {
-        select.value = manualPresetCategory;
-        loadManualItemsForCategory();
-      }
-      manualPresetCategory = null; // only auto-apply once; user can freely change category afterward
+      if (!matched) return;
+
+      select.value = manualPresetCategory;
+      select.disabled = true;
+      select.style.display = "none";
+      $("manual-category-locked-tag").style.display = "block";
+      $("manual-category-locked-tag").innerText = "🔒 Locked to category: " + manualPresetCategory;
+      loadManualItemsForCategory();
     }
 
     function loadManualItemsForCategory() {
