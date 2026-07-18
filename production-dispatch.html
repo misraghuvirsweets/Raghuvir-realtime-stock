@@ -66,6 +66,47 @@
     .giant-scan-box:active { transform: scale(0.96); }
     .giant-scan-box.disabled { opacity: 0.45; pointer-events: none; }
 
+    .manual-entry-btn {
+      width: 100%; padding: 14px 16px; text-align: center; margin-top: 4px;
+      border: 2px dashed var(--border); border-radius: 12px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      background: #FAF7F2; color: var(--text-soft); font-family: inherit; transition: all 0.2s;
+    }
+    .manual-entry-btn strong{ font-size: 14px; color: var(--text); }
+    .manual-entry-btn span{ font-size: 11.5px; }
+    .manual-entry-btn:active{ transform: scale(0.97); }
+    .manual-entry-btn.disabled { opacity: 0.45; pointer-events: none; }
+
+    #manual-entry-panel{ display:none; flex-direction:column; gap:12px; }
+    .manual-form-row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .manual-form-select, .manual-form-input{
+      flex:1 1 160px; padding:11px 12px; border:1px solid var(--border); border-radius:10px;
+      font-size:14px; font-family:inherit; background:#fff; color:var(--text); outline:none;
+    }
+    .manual-items-grid{
+      display:grid; grid-template-columns:1fr; gap:10px; max-height:420px; overflow-y:auto;
+      border:1px solid var(--border); border-radius:12px; background:#FAF7F2; padding:10px;
+    }
+    @media (min-width:640px){ .manual-items-grid{ grid-template-columns:repeat(2,1fr); } }
+    .manual-item-card{ background:#fff; border:1px solid var(--border); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:6px; }
+    .manual-item-name{ font-weight:700; font-size:13.5px; color:var(--text); }
+    .manual-item-meta{ font-size:11px; color:var(--text-soft); }
+    .manual-item-qty-row{ display:flex; align-items:center; gap:8px; margin-top:2px; }
+    .manual-item-qty-row label{ font-size:11px; color:var(--text-soft); font-weight:700; }
+    .manual-item-qty-input{
+      flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:8px;
+      font-size:14px; font-family:inherit; text-align:right; outline:none;
+    }
+    .manual-item-qty-input.touched{ background:#F2E8DB; }
+    .dashboard-panel.inward .manual-item-qty-input.touched{ border-color:var(--green); }
+    .dashboard-panel.outward .manual-item-qty-input.touched{ border-color:var(--terracotta); }
+    .manual-summary-bar{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:var(--navy-soft); border-radius:10px; padding:11px 14px; font-size:12.5px; font-weight:700; color:var(--navy); }
+    .manual-secondary-btn{
+      width:100%; padding:13px; border:none; border-radius:10px; font-size:14px; font-weight:700;
+      font-family:inherit; cursor:pointer; background:#EFE9DE; color:var(--text);
+    }
+    .manual-secondary-btn:active{ opacity:0.9; }
+
     .history-section-label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-soft); font-weight:700; margin-top: 4px; }
     .history-scroll-box {
       border: 1px solid var(--border); border-radius: 12px; background: #FAF7F2;
@@ -174,6 +215,30 @@
           <span>Camera viewfinder opens automatically</span>
         </div>
 
+        <div id="manual-entry-btn" class="manual-entry-btn" onclick="openManualEntryPanel()">
+          <strong>✍️ Manual Entry (No Barcode)</strong>
+          <span>Pick a category, enter quantities for multiple items at once</span>
+        </div>
+
+        <div id="manual-entry-panel">
+          <div class="manual-form-row">
+            <select id="manual-category-select" class="manual-form-select" onchange="loadManualItemsForCategory()">
+              <option value="">Loading categories...</option>
+            </select>
+          </div>
+          <input id="manual-item-search" class="manual-form-input" type="text" placeholder="Search within loaded items..." oninput="filterManualVisibleItems(this.value)" style="width:100%;">
+
+          <div id="manual-summary-bar" class="manual-summary-bar" style="display:none;">
+            <span id="manual-summary-text">0 items loaded</span>
+            <span id="manual-summary-touched">0 entered</span>
+          </div>
+
+          <div id="manual-items-grid" class="manual-items-grid">Pick a category above to load its items.</div>
+
+          <button class="master-submit-btn" type="button" onclick="addManualItemsToBatch()">➕ Add Entered Items to Batch</button>
+          <button class="manual-secondary-btn" type="button" onclick="closeManualEntryPanel()">← Back to Scan</button>
+        </div>
+
         <div style="margin-top: 2px;">
           <label class="history-section-label">Scanned Items History Log</label>
           <div id="dashboard-history-scroll" class="history-scroll-box">No entries in batch yet.</div>
@@ -225,6 +290,10 @@
     var currentScannedPayload = null;
     var selectedBranchName = null;
 
+    var urlParamsForPage = new URLSearchParams(window.location.search);
+    var manualPresetCategory = urlParamsForPage.get('category'); // used by category-wise links from the Admin Dashboard's Links tab
+    var manualCategoriesLoaded = false;
+
     var jsonpCounter = 0;
     function executeJsonpTransfer(params, successCallback, failureCallback) {
       jsonpCounter++;
@@ -252,6 +321,10 @@
       $("desk-dashboard").hidden = false;
       $("desk-dashboard").className = "dashboard-panel " + (mode === "in" ? "inward" : "outward");
       $("dashboard-title-label").innerText = mode === "in" ? "Production Dashboard Unit" : "Dispatch Dashboard Unit";
+
+      $("manual-entry-panel").style.display = "none";
+      $("scan-box-wrapper").style.display = "flex";
+      $("manual-entry-btn").style.display = "flex";
 
       if (mode === "out") {
         $("branch-select-section").style.display = "block";
@@ -293,8 +366,14 @@
 
     function updateScanBoxLockState() {
       var scanBox = $("scan-box-wrapper");
-      if (currentActiveMode === "out" && !selectedBranchName) scanBox.classList.add("disabled");
-      else scanBox.classList.remove("disabled");
+      var manualBtn = $("manual-entry-btn");
+      if (currentActiveMode === "out" && !selectedBranchName) {
+        scanBox.classList.add("disabled");
+        manualBtn.classList.add("disabled");
+      } else {
+        scanBox.classList.remove("disabled");
+        manualBtn.classList.remove("disabled");
+      }
     }
 
     function deleteRowEntryItem(index) {
@@ -503,6 +582,158 @@
       centralBatchCollection.push(itemObject);
       refreshHistoryLogDisplay();
       setLogStatus("Added into Workspace: " + itemObject.product, "success");
+    }
+
+    /* ============== MANUAL ENTRY PANEL (NO BARCODE — CATEGORY WISE) ============== */
+
+    function openManualEntryPanel() {
+      if (currentActiveMode === "out" && !selectedBranchName) {
+        alert("Please select a Branch (Ram Mandir / Vishrambagh / Miraj) before manual entry.");
+        return;
+      }
+      $("scan-box-wrapper").style.display = "none";
+      $("manual-entry-btn").style.display = "none";
+      $("manual-entry-panel").style.display = "flex";
+
+      if (!manualCategoriesLoaded) loadManualCategories();
+      else if (manualPresetCategory) applyManualPresetCategory();
+    }
+
+    function closeManualEntryPanel() {
+      $("manual-entry-panel").style.display = "none";
+      $("scan-box-wrapper").style.display = "flex";
+      $("manual-entry-btn").style.display = "flex";
+      updateScanBoxLockState();
+    }
+
+    function loadManualCategories() {
+      executeJsonpTransfer({ action: "getCategories" }, function(res){
+        var select = $("manual-category-select");
+        select.innerHTML = '<option value="">Select a category...</option>';
+        if (res && res.success && res.data && res.data.length > 0) {
+          res.data.forEach(function(cat){
+            var opt = document.createElement("option");
+            opt.value = cat; opt.innerText = cat;
+            select.appendChild(opt);
+          });
+          manualCategoriesLoaded = true;
+          applyManualPresetCategory();
+        } else {
+          select.innerHTML = '<option value="">No categories found</option>';
+        }
+      }, function(e){ setLogStatus("Could not load categories.", "error"); });
+    }
+
+    function applyManualPresetCategory() {
+      if (!manualPresetCategory) return;
+      var select = $("manual-category-select");
+      var matched = Array.from(select.options).some(function(o){ return o.value === manualPresetCategory; });
+      if (matched) {
+        select.value = manualPresetCategory;
+        loadManualItemsForCategory();
+      }
+      manualPresetCategory = null; // only auto-apply once; user can freely change category afterward
+    }
+
+    function loadManualItemsForCategory() {
+      var category = $("manual-category-select").value;
+      if (!category) {
+        $("manual-items-grid").innerHTML = "Pick a category above to load its items.";
+        $("manual-summary-bar").style.display = "none";
+        return;
+      }
+      $("manual-items-grid").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading items...</div>';
+      setLogStatus("Loading items in " + category + "...", "");
+
+      executeJsonpTransfer({ action: "getProductsByCategory", category: category }, function(res){
+        if (res && res.success) {
+          renderManualItemsGrid(res.data || []);
+          $("manual-summary-bar").style.display = "flex";
+          updateManualSummary(res.data ? res.data.length : 0);
+          setLogStatus("Loaded " + (res.data ? res.data.length : 0) + " items in " + category + ".", "success");
+        } else { setLogStatus("Failed to load items.", "error"); }
+      }, function(e){ setLogStatus("Items connection timeout.", "error"); });
+    }
+
+    function renderManualItemsGrid(items) {
+      var box = $("manual-items-grid");
+      if (!items || items.length === 0) {
+        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No items in this category.</div>';
+        return;
+      }
+      var html = "";
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        html += `
+          <div class="manual-item-card" data-name="${it.name.toLowerCase()}">
+            <div class="manual-item-name">${it.name}</div>
+            <div class="manual-item-meta">Code: ${it.barcode || '—'} | Godown Stock: ${it.godownStock} ${it.unit}</div>
+            <div class="manual-item-qty-row">
+              <label>Qty</label>
+              <input class="manual-item-qty-input" type="number" step="any" placeholder="0"
+                     data-product="${it.name.replace(/"/g,'&quot;')}"
+                     data-barcode="${it.barcode || ''}"
+                     data-category="${(it.category || '').replace(/"/g,'&quot;')}"
+                     oninput="this.classList.toggle('touched', this.value !== ''); updateManualSummary();">
+            </div>
+          </div>`;
+      }
+      box.innerHTML = html;
+    }
+
+    function filterManualVisibleItems(query) {
+      var q = (query || "").trim().toLowerCase();
+      var cards = document.querySelectorAll("#manual-items-grid .manual-item-card");
+      cards.forEach(function(card){
+        var name = card.getAttribute("data-name") || "";
+        card.style.display = (!q || name.indexOf(q) !== -1) ? "flex" : "none";
+      });
+    }
+
+    function updateManualSummary(totalCount) {
+      var inputs = document.querySelectorAll("#manual-items-grid .manual-item-qty-input");
+      var touched = 0;
+      inputs.forEach(function(inp){ if (inp.value !== "") touched++; });
+      if (typeof totalCount === "number") $("manual-summary-text").innerText = totalCount + " items loaded";
+      $("manual-summary-touched").innerText = touched + " entered";
+    }
+
+    function addManualItemsToBatch() {
+      if (currentActiveMode === "out" && !selectedBranchName) {
+        alert("Please select a Branch before adding dispatch items.");
+        return;
+      }
+      var inputs = document.querySelectorAll("#manual-items-grid .manual-item-qty-input");
+      var addedCount = 0;
+      inputs.forEach(function(inp){
+        if (inp.value === "") return;
+        var qty = parseFloat(inp.value);
+        if (isNaN(qty) || qty <= 0) return;
+
+        var itemObject = {
+          type: (currentActiveMode === "in") ? "PRODUCTION" : "DISPATCH",
+          barcode: inp.getAttribute("data-barcode"),
+          category: inp.getAttribute("data-category"),
+          product: inp.getAttribute("data-product"),
+          qty: qty,
+          branch: (currentActiveMode === "out") ? selectedBranchName : ""
+        };
+        centralBatchCollection.push(itemObject);
+        addedCount++;
+      });
+
+      if (addedCount === 0) {
+        setLogStatus("Enter at least one quantity before adding.", "error");
+        return;
+      }
+
+      refreshHistoryLogDisplay();
+      setLogStatus(addedCount + " item(s) added into Workspace from Manual Entry.", "success");
+
+      // Reset the grid's inputs so re-opening the same category starts fresh, then return to scan view.
+      inputs.forEach(function(inp){ inp.value = ""; inp.classList.remove("touched"); });
+      updateManualSummary();
+      closeManualEntryPanel();
     }
 
     function submitEntireDeskBatch() {
