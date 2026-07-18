@@ -366,10 +366,19 @@
         try {
           var codesFound = await nativeDetectorObject.detect(videoElement);
           if (codesFound && codesFound.length > 0 && codesFound[0].rawValue) {
-            evaluateIncomingScannedCode(codesFound[0].rawValue); return;
+            var rawCode = codesFound[0].rawValue;
+            // Require the SAME code to be read twice in a row before accepting it (same debounce
+            // the Quagga fallback already uses) — this, plus the slightly longer poll interval
+            // below, makes scanning feel deliberate instead of firing instantly on the first frame.
+            trackingSequence.push(rawCode);
+            if (trackingSequence.length > 2) trackingSequence.shift();
+            if (trackingSequence.length === 2 && trackingSequence[0] === trackingSequence[1]) {
+              evaluateIncomingScannedCode(rawCode);
+              return;
+            }
           }
         } catch (e) {}
-        await new Promise(r => setTimeout(r, 60));
+        await new Promise(r => setTimeout(r, 220));
       }
     }
 
