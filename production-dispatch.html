@@ -403,13 +403,18 @@
       scannerRunning = false;
       if (navigator.vibrate) navigator.vibrate(65);
 
-      var parsedBarcode = codeString;
+      // Some weight-scale barcodes come through prefixed with "#" (e.g. "#80421250").
+      // Strip any leading "#" first, then parse the first 4 characters as the item code
+      // and everything after that as the weight, same as before.
+      var cleanedCode = codeString.replace(/^#+/, '');
+
+      var parsedBarcode = cleanedCode;
       var isolatedWeightVal = 0;
       var isWeightScaleBarcode = false;
 
-      if (codeString.length > 4) {
-        parsedBarcode = codeString.substring(0, 4);
-        var subWeightStr = codeString.substring(4);
+      if (cleanedCode.length > 4) {
+        parsedBarcode = cleanedCode.substring(0, 4);
+        var subWeightStr = cleanedCode.substring(4);
         isolatedWeightVal = parseFloat(subWeightStr) || 0;
         if (isolatedWeightVal > 0) isWeightScaleBarcode = true;
       }
