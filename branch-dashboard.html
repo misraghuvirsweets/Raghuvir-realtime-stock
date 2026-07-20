@@ -40,21 +40,30 @@
     .panel-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; font-family:'Fraunces',serif; font-size:17px; font-weight:600; border-bottom:1px solid var(--border); background:var(--gold-soft); color:var(--gold); }
     .panel-body{ padding:16px; display:flex; flex-direction:column; gap:12px; }
 
-    .batch-card{ border:1px solid var(--border); border-radius:12px; padding:14px; background:#FAF7F2; display:flex; flex-direction:column; gap:10px; }
-    .batch-card.received{ background:var(--green-soft); border-color:var(--green); }
-    .batch-card-head{ display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px; }
-    .batch-card-time{ font-weight:700; font-size:14px; color:var(--text); }
-    .batch-card-meta{ font-size:11.5px; color:var(--text-soft); }
-    .batch-items-list{ display:flex; flex-direction:column; gap:4px; }
-    .batch-item-row{ display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px dashed var(--border); }
+    .batch-card{ border:1px solid var(--border); border-radius:12px; padding:0; background:#FFFFFF; display:flex; flex-direction:column; overflow:hidden; }
+    .batch-card.received{ border-color:var(--green); }
+    .challan-header{ background:var(--gold-soft); padding:12px 14px; border-bottom:1px dashed var(--border); }
+    .challan-brand{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--gold); text-align:center; margin-bottom:2px; }
+    .challan-title{ font-size:10.5px; font-weight:700; letter-spacing:0.06em; color:var(--text-soft); text-align:center; text-transform:uppercase; margin-bottom:8px; }
+    .challan-meta-row{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:12px; }
+    .challan-meta-row span b{ color:var(--text); }
+    .challan-table{ padding:10px 14px; }
+    .challan-table-head{ display:flex; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-soft); border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:2px; }
+    .challan-col-num{ width:24px; }
+    .challan-col-item{ flex:1; }
+    .challan-col-cat{ width:90px; }
+    .challan-col-qty{ width:50px; text-align:right; }
+    .batch-item-row{ display:flex; align-items:center; font-size:13px; padding:7px 0; border-bottom:1px dashed var(--border); }
     .batch-item-row:last-child{ border-bottom:none; }
-    .batch-item-row b{ color:var(--gold); }
+    .batch-item-row .challan-col-qty{ font-weight:700; color:var(--gold); }
+    .challan-footer{ padding:10px 14px; background:#FAF7F2; border-top:1px dashed var(--border); display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; color:var(--text); }
+    .batch-card-actions{ padding:14px; }
     .receive-btn{
       width:100%; padding:13px; border:none; border-radius:10px; font-size:14.5px; font-weight:700;
       font-family:inherit; cursor:pointer; background:var(--green); color:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.08);
     }
     .receive-btn:active{ opacity:0.9; transform:translateY(1px); }
-    .received-tag{ font-size:12px; font-weight:700; color:var(--green); }
+    .received-tag{ font-size:12px; font-weight:700; color:var(--green); background:var(--green-soft); padding:4px 10px; border-radius:6px; }
 
     .status-msg-bar{ min-height:18px; font-size:13px; font-weight:600; text-align:center; margin-top:10px; }
     .status-msg-bar.success{ color:var(--green); }
@@ -74,17 +83,17 @@
 
     <div id="notify-banner" class="notify-banner">
       <span class="bell">🔔</span>
-      <span id="notify-text">You have pending dispatches waiting to be received!</span>
+      <span id="notify-text">You have dispatched items waiting to be received!</span>
     </div>
 
     <div class="top-tab-row">
-      <button class="top-tab-btn active" id="tab-btn-pending" type="button" onclick="switchBranchTab('pending')">Pending Dispatches</button>
+      <button class="top-tab-btn active" id="tab-btn-pending" type="button" onclick="switchBranchTab('pending')">Dispatched</button>
       <button class="top-tab-btn" id="tab-btn-history" type="button" onclick="switchBranchTab('history')">Received History</button>
     </div>
 
     <div class="panel" id="view-pending">
       <div class="panel-head">
-        <span>📦 Pending Dispatches</span>
+        <span>📦 Dispatched</span>
         <button class="top-tab-btn" style="flex:none; padding:8px 12px; font-size:12px;" type="button" onclick="loadPendingDispatches()">🔄 Refresh</button>
       </div>
       <div class="panel-body" id="pending-list">Loading...</div>
@@ -145,12 +154,12 @@
     }
 
     function loadPendingDispatches() {
-      $("pending-list").innerHTML = '<div class="empty-note">Loading pending dispatches...</div>';
+      $("pending-list").innerHTML = '<div class="empty-note">Loading dispatched items...</div>';
       executeJsonpTransfer({ action: "getPendingDispatches", branch: branchName }, function(res){
         if (res && res.success) {
           renderPendingList(res.data || []);
         } else {
-          $("pending-list").innerHTML = '<div class="empty-note">Failed to load pending dispatches.</div>';
+          $("pending-list").innerHTML = '<div class="empty-note">Failed to load dispatched items.</div>';
         }
       }, function(e){ $("pending-list").innerHTML = '<div class="empty-note">Connection timeout.</div>'; });
     }
@@ -159,28 +168,56 @@
       var box = $("pending-list");
       var banner = $("notify-banner");
       if (!batches || batches.length === 0) {
-        box.innerHTML = '<div class="empty-note">No pending dispatches right now — you\'re all caught up!</div>';
+        box.innerHTML = '<div class="empty-note">No dispatched items right now — you\'re all caught up!</div>';
         banner.style.display = "none";
         return;
       }
 
       banner.style.display = "flex";
-      $("notify-text").innerText = "You have " + batches.length + " pending dispatch" + (batches.length > 1 ? "es" : "") + " waiting to be received!";
+      $("notify-text").innerText = "You have " + batches.length + " dispatch" + (batches.length > 1 ? "es" : "") + " waiting to be received!";
 
       var html = "";
       batches.forEach(function(batch){
         var itemsHtml = "";
-        batch.items.forEach(function(it){
-          itemsHtml += `<div class="batch-item-row"><span>${it.product}${it.category ? ' <span style="color:var(--text-soft); font-size:11px;">(' + it.category + ')</span>' : ''}</span><b>x${it.qty}</b></div>`;
+        batch.items.forEach(function(it, idx){
+          itemsHtml += `
+            <div class="batch-item-row">
+              <span class="challan-col-num">${idx + 1}</span>
+              <span class="challan-col-item">${it.product}</span>
+              <span class="challan-col-cat">${it.category || '-'}</span>
+              <span class="challan-col-qty">x${it.qty}</span>
+            </div>`;
         });
         html += `
           <div class="batch-card">
-            <div class="batch-card-head">
-              <span class="batch-card-time">🕐 ${batch.timestampDisplay}</span>
-              <span class="batch-card-meta">${batch.items.length} item(s)</span>
+            <div class="challan-header">
+              <div class="challan-brand">Raghuvir Sweets & Bakers</div>
+              <div class="challan-title">Dispatch Challan</div>
+              <div class="challan-meta-row">
+                <span>From: <b>Savali Factory</b></span>
+                <span>To: <b>${branchName}</b></span>
+              </div>
+              <div class="challan-meta-row" style="margin-top:4px;">
+                <span>🕐 <b>${batch.timestampDisplay}</b></span>
+                <span>${batch.items.length} item(s)</span>
+              </div>
             </div>
-            <div class="batch-items-list">${itemsHtml}</div>
-            <button class="receive-btn" type="button" onclick="markReceived('${batch.timestampISO}', this)">✅ Mark as Received</button>
+            <div class="challan-table">
+              <div class="challan-table-head">
+                <span class="challan-col-num">#</span>
+                <span class="challan-col-item">Item Name</span>
+                <span class="challan-col-cat">Category</span>
+                <span class="challan-col-qty">Qty</span>
+              </div>
+              ${itemsHtml}
+            </div>
+            <div class="challan-footer">
+              <span>Total Items</span>
+              <span>${batch.items.length}</span>
+            </div>
+            <div class="batch-card-actions">
+              <button class="receive-btn" type="button" onclick="markReceived('${batch.timestampISO}', this)">✅ Mark as Received</button>
+            </div>
           </div>`;
       });
       box.innerHTML = html;
@@ -228,17 +265,45 @@
       var html = "";
       batches.forEach(function(batch){
         var itemsHtml = "";
-        batch.items.forEach(function(it){
-          itemsHtml += `<div class="batch-item-row"><span>${it.product}${it.category ? ' <span style="color:var(--text-soft); font-size:11px;">(' + it.category + ')</span>' : ''}</span><b>x${it.qty}</b></div>`;
+        batch.items.forEach(function(it, idx){
+          itemsHtml += `
+            <div class="batch-item-row">
+              <span class="challan-col-num">${idx + 1}</span>
+              <span class="challan-col-item">${it.product}</span>
+              <span class="challan-col-cat">${it.category || '-'}</span>
+              <span class="challan-col-qty">x${it.qty}</span>
+            </div>`;
         });
         html += `
           <div class="batch-card received">
-            <div class="batch-card-head">
-              <span class="batch-card-time">🕐 Dispatched: ${batch.timestampDisplay}</span>
-              <span class="received-tag">✅ Received</span>
+            <div class="challan-header">
+              <div class="challan-brand">Raghuvir Sweets & Bakers</div>
+              <div class="challan-title">Dispatch Challan</div>
+              <div class="challan-meta-row">
+                <span>From: <b>Savali Factory</b></span>
+                <span>To: <b>${branchName}</b></span>
+              </div>
+              <div class="challan-meta-row" style="margin-top:4px;">
+                <span>🕐 Sent: <b>${batch.timestampDisplay}</b></span>
+                <span class="received-tag">✅ Received</span>
+              </div>
+              <div class="challan-meta-row" style="margin-top:4px;">
+                <span>Received at: <b>${batch.receivedAtDisplay || '—'}</b></span>
+              </div>
             </div>
-            <div class="batch-card-meta">Received at: ${batch.receivedAtDisplay || '—'}</div>
-            <div class="batch-items-list">${itemsHtml}</div>
+            <div class="challan-table">
+              <div class="challan-table-head">
+                <span class="challan-col-num">#</span>
+                <span class="challan-col-item">Item Name</span>
+                <span class="challan-col-cat">Category</span>
+                <span class="challan-col-qty">Qty</span>
+              </div>
+              ${itemsHtml}
+            </div>
+            <div class="challan-footer">
+              <span>Total Items</span>
+              <span>${batch.items.length}</span>
+            </div>
           </div>`;
       });
       box.innerHTML = html;
