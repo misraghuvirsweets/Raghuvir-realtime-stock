@@ -280,6 +280,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     function $(id){ return document.getElementById(id); }
 
@@ -751,15 +752,22 @@
         setLogStatus("Staging batch history environment ledger is empty.", "error");
         return;
       }
-      if (!confirm("Are you sure you want to push this total transaction batch array containing " + centralBatchCollection.length + " logged line items?\n\nStock will be auto " +
-        (currentActiveMode === "in" ? "increased (+)" : "reduced (-) at Savali Factory and increased (+) at the branch") + " for each item.")) return;
+      var confirmMsg = currentActiveMode === "in"
+        ? "Are you sure you want to push this total transaction batch array containing " + centralBatchCollection.length + " logged line items?\n\nStock will be auto increased (+) at Savali Factory for each item."
+        : "Are you sure you want to push this total transaction batch array containing " + centralBatchCollection.length + " logged line items?\n\nStock will be reduced (-) at Savali Factory immediately, and will show as PENDING for " + selectedBranchName + " until they confirm receipt on their Branch Dashboard.";
+      if (!confirm(confirmMsg)) return;
 
       setLogStatus("Uploading records payload package to Cloud Sheets server...", "");
       var serializedBatch = JSON.stringify(centralBatchCollection);
+      var batchSnapshot = centralBatchCollection.slice(); // keep a copy for the PDF challan, since we clear the batch right after
+      var dispatchBranchSnapshot = selectedBranchName;
 
       executeJsonpTransfer({ action: "saveBatch", batch: serializedBatch }, function(res){
         if (res && res.success) {
-          alert("All entries pushed successfully! Stock updated.");
+          if (currentActiveMode === "out") {
+            generateDispatchChallanPDF(batchSnapshot, dispatchBranchSnapshot);
+          }
+          alert("All entries pushed successfully! Stock updated." + (currentActiveMode === "out" ? " A dispatch slip PDF has been downloaded." : ""));
           centralBatchCollection = [];
           refreshHistoryLogDisplay();
           exitDashboardScreen();
@@ -767,6 +775,101 @@
           setLogStatus("Database server execution process breakdown occurred.", "error");
         }
       }, function(e){ setLogStatus("Cloud submission pipeline connection timeout.", "error"); });
+    }
+
+    /* ============== DISPATCH CHALLAN PDF ============== */
+    function generateDispatchChallanPDF(items, branchName) {
+      try {
+        var jsPDFLib = window.jspdf && window.jspdf.jsPDF;
+        if (!jsPDFLib) { console.error("jsPDF not loaded"); return; }
+        var doc = new jsPDFLib({ unit: "pt", format: "a4" });
+        var pageWidth = doc.internal.pageSize.getWidth();
+        var marginX = 40;
+        var y = 50;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.text("Raghuvir Sweets & Bakers", pageWidth / 2, y, { align: "center" });
+
+        y += 22;
+        doc.setFontSize(13);
+        doc.setTextColor(166, 60, 25);
+        doc.text("DISPATCH CHALLAN", pageWidth / 2, y, { align: "center" });
+        doc.setTextColor(0, 0, 0);
+
+        y += 26;
+        doc.setDrawColor(220, 210, 191);
+        doc.line(marginX, y, pageWidth - marginX, y);
+
+        var now = new Date();
+        var dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        var timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+        y += 24;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("Dispatched To:", marginX, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(branchName || "-", marginX + 100, y);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("From:", pageWidth - marginX - 160, y);
+        doc.setFont("helvetica", "normal");
+        doc.text("Savali Factory", pageWidth - marginX - 110, y);
+
+        y += 18;
+        doc.setFont("helvetica", "bold");
+        doc.text("Date & Time:", marginX, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(dateStr + "  " + timeStr, marginX + 100, y);
+
+        y += 22;
+        doc.line(marginX, y, pageWidth - marginX, y);
+
+        // Table header
+        y += 20;
+        var col1 = marginX, col2 = marginX + 40, col3 = marginX + 300, col4 = pageWidth - marginX - 60;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text("#", col1, y);
+        doc.text("Item Name", col2, y);
+        doc.text("Category", col3, y);
+        doc.text("Qty", col4, y);
+        y += 6;
+        doc.line(marginX, y, pageWidth - marginX, y);
+
+        doc.setFont("helvetica", "normal");
+        var pageHeight = doc.internal.pageSize.getHeight();
+        for (var i = 0; i < items.length; i++) {
+          y += 18;
+          if (y > pageHeight - 80) {
+            doc.addPage();
+            y = 50;
+          }
+          var it = items[i];
+          doc.text(String(i + 1), col1, y);
+          doc.text(String(it.product || ""), col2, y, { maxWidth: 250 });
+          doc.text(String(it.category || "-"), col3, y);
+          doc.text(String(it.qty), col4, y);
+        }
+
+        y += 14;
+        doc.line(marginX, y, pageWidth - marginX, y);
+        y += 20;
+        doc.setFont("helvetica", "bold");
+        doc.text("Total Items: " + items.length, marginX, y);
+
+        y += 40;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(120, 110, 100);
+        doc.text("This stock will appear as PENDING for " + (branchName || "the branch") + " until receipt is confirmed on the Branch Dashboard.", marginX, y);
+
+        var fileName = "Dispatch_Challan_" + (branchName || "Branch").replace(/\s+/g, "_") + "_" + now.getTime() + ".pdf";
+        doc.save(fileName);
+      } catch (err) {
+        console.error("PDF generation failed:", err);
+      }
     }
 
     function setLogStatus(msg, classification) {
