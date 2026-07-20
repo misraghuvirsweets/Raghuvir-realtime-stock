@@ -767,7 +767,7 @@
           if (currentActiveMode === "out") {
             generateDispatchChallanPDF(batchSnapshot, dispatchBranchSnapshot);
           }
-          alert("All entries pushed successfully! Stock updated." + (currentActiveMode === "out" ? " A dispatch slip PDF has been downloaded." : ""));
+          alert("All entries pushed successfully! Stock updated." + (currentActiveMode === "out" ? " The dispatch challan has opened in a new tab — save or print it from there." : ""));
           centralBatchCollection = [];
           refreshHistoryLogDisplay();
           exitDashboardScreen();
@@ -865,8 +865,12 @@
         doc.setTextColor(120, 110, 100);
         doc.text("This stock will appear as PENDING for " + (branchName || "the branch") + " until receipt is confirmed on the Branch Dashboard.", marginX, y);
 
-        var fileName = "Dispatch_Challan_" + (branchName || "Branch").replace(/\s+/g, "_") + "_" + now.getTime() + ".pdf";
-        doc.save(fileName);
+        // Open the PDF for preview first (browser's own PDF viewer) instead of forcing an
+        // immediate download — the user can then save/print it themselves from there once
+        // they've checked it looks right.
+        var pdfBlob = doc.output("blob");
+        var blobUrl = URL.createObjectURL(pdfBlob);
+        window.open(blobUrl, "_blank");
       } catch (err) {
         console.error("PDF generation failed:", err);
       }
