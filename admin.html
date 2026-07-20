@@ -720,13 +720,13 @@
               <span class="dash-row-loc">${r.location}</span>
             </div>
             <div class="dash-row-figs">
-              <span>${r.period}</span>
+              <span>${r.date}</span>
+              <span>${r.category || '—'}</span>
               <span>Opening: <b>${r.opening}</b></span>
               <span>In: <b>${r.stockIn}</b></span>
-              <span>Out: <b>${r.out}</b></span>
+              <span>Sales/Out: <b>${r.salesOrOut}</b></span>
               <span>Current: <b>${r.current}</b></span>
             </div>
-            <div class="dash-row-value">Value: ₹${Number(r.value).toLocaleString('en-IN')}</div>
           </div>`;
       });
       box.innerHTML = html;
