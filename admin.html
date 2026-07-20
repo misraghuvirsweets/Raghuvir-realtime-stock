@@ -179,6 +179,7 @@
       <button class="top-tab-btn" id="top-tab-sales" type="button" onclick="switchTopTab('sales')">Sales (POS)</button>
       <button class="top-tab-btn" id="top-tab-links" type="button" onclick="switchTopTab('links')">Links</button>
       <button class="top-tab-btn" id="top-tab-godown" type="button" onclick="switchTopTab('godown')">Godown List</button>
+      <button class="top-tab-btn" id="top-tab-records" type="button" onclick="switchTopTab('records')">Records</button>
     </div>
 
     <!-- =============== STOCK DASHBOARD =============== -->
@@ -186,6 +187,7 @@
       <div class="panel-head">📊 Opening + Stock In − Sales/Dispatched = Current</div>
       <div class="panel-body">
         <p style="font-size:12px; color:var(--text-soft); margin:0;">Opening stock comes from your monthly baseline (see <a href="opening-stock-entry.html" style="color:var(--navy); font-weight:700;">Opening Stock Entry</a>) plus this month's activity. Set a baseline for each branch at the start of every month for accurate figures.</p>
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Dispatched stock only counts toward a branch once that branch confirms receipt on their <a href="branch-dashboard.html" style="color:var(--navy); font-weight:700;">Branch Dashboard</a> (see the Links tab for branch-specific links) — until then it shows as "Dispatched Out" from Savali Factory but not yet "In" at the branch.</p>
         <div class="filter-row">
           <select id="dash-location-filter" class="filter-select">
             <option value="All">All Locations</option>
@@ -271,11 +273,20 @@
     </div>
 
     <!-- =============== LINKS (category-wise manual entry links) =============== -->
-    <div class="panel" id="view-links" hidden>
-      <div class="panel-head">🔗 Category-Wise Manual Entry Links</div>
-      <div class="panel-body">
-        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Each link below opens the Production/Dispatch Desk with Manual Entry pre-loaded for that category — handy for filling in stock without scanning barcodes, one group at a time.</p>
-        <div id="category-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading categories...</div>
+    <div id="view-links" hidden>
+      <div class="panel">
+        <div class="panel-head">🔗 Category-Wise Manual Entry Links</div>
+        <div class="panel-body">
+          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Each link below opens the Production/Dispatch Desk with Manual Entry pre-loaded for that category — handy for filling in stock without scanning barcodes, one group at a time.</p>
+          <div id="category-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading categories...</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">📦 Branch Dashboard Links</div>
+        <div class="panel-body">
+          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Give each branch their own link — they'll see pending dispatches, get a notification banner, and can tap "Mark as Received" to confirm stock.</p>
+          <div id="branch-dashboard-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;"></div>
+        </div>
       </div>
     </div>
 
@@ -295,6 +306,41 @@
         <div id="history-item-header" class="history-item-header"></div>
         <label class="history-section-label">Full Transaction History</label>
         <div id="history-list" class="scroll-box">Loading...</div>
+      </div>
+    </div>
+
+    <!-- =============== RECORDS (raw Inventory_Log / Opening_Stock_Baseline / Stock_Dashboard viewer) =============== -->
+    <div class="panel" id="view-records" hidden>
+      <div class="panel-head">📋 Records — Raw Sheet Data</div>
+      <div class="panel-body">
+        <div class="sup-tab-row">
+          <button class="sup-tab-btn active" id="rec-tab-invlog" type="button" onclick="switchRecordsSheet('invlog')">Inventory Log</button>
+          <button class="sup-tab-btn" id="rec-tab-baseline" type="button" onclick="switchRecordsSheet('baseline')">Opening Baseline</button>
+          <button class="sup-tab-btn" id="rec-tab-stockdash" type="button" onclick="switchRecordsSheet('stockdash')">Stock Dashboard</button>
+        </div>
+
+        <div class="filter-row">
+          <select id="rec-type-filter" class="filter-select">
+            <option value="All">All Types</option>
+            <option value="PRODUCTION">Production</option>
+            <option value="DISPATCH">Dispatch</option>
+            <option value="SALE">Sale</option>
+          </select>
+          <select id="rec-location-filter" class="filter-select">
+            <option value="All">All Locations</option>
+            <option value="Savali Factory">Savali Factory</option>
+            <option value="Ram Mandir">Ram Mandir</option>
+            <option value="Vishrambagh">Vishrambagh</option>
+            <option value="Miraj">Miraj</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <input id="rec-search-input" class="filter-input search-input" type="text" placeholder="Search product name...">
+          <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadRecordsData()">🔄 Load Records</button>
+        </div>
+
+        <label class="history-section-label">Showing most recent 300 rows matching your filters</label>
+        <div id="records-list" class="scroll-box" style="max-height:480px;">Choose a sheet above and tap "Load Records".</div>
       </div>
     </div>
 
@@ -343,13 +389,13 @@
 
     var categoryLinksLoaded = false;
     function switchTopTab(tab) {
-      ["stock","valuation","sales","links","godown"].forEach(function(t){
+      ["stock","valuation","sales","links","godown","records"].forEach(function(t){
         $("top-tab-" + t).classList.toggle("active", t === tab);
         $("view-" + t).hidden = (t !== tab);
       });
       if (tab === 'sales' && $("sales-month-filter").options.length <= 1) loadSalesMonths();
       if (tab === 'godown' && !godownListCache.length) loadGodownList();
-      if (tab === 'links' && !categoryLinksLoaded) loadCategoryLinks();
+      if (tab === 'links' && !categoryLinksLoaded) { loadCategoryLinks(); renderBranchDashboardLinksList(); }
     }
 
     var currentPeriodType = 'day';
@@ -505,6 +551,17 @@
       }, function(e){ box.innerHTML = '<div style="color:#888;">Could not load categories.</div>'; });
     }
 
+    function renderBranchDashboardLinksList() {
+      var base = window.location.origin + window.location.pathname.replace(/[^\/]*$/, "") + "branch-dashboard.html";
+      var box = $("branch-dashboard-links-list");
+      var html = "";
+      ALL_LOCATIONS_ADMIN.forEach(function(loc){
+        var link = base + "?branch=" + encodeURIComponent(loc);
+        html += '<div><b>' + loc + ':</b> <a href="' + link + '" target="_blank" style="color:var(--navy);">' + link + '</a></div>';
+      });
+      box.innerHTML = html;
+    }
+
     function loadSalesMonths() {
       executeJsonpTransfer({ action: "listSalesMonths" }, function(res){
         var select = $("sales-month-filter");
@@ -567,6 +624,104 @@
     }
 
     var godownListCache = [];
+
+    /* ============== RECORDS TAB (raw sheet data viewer) ============== */
+    var currentRecordsSheet = 'invlog';
+
+    function switchRecordsSheet(sheetKey) {
+      currentRecordsSheet = sheetKey;
+      ["invlog","baseline","stockdash"].forEach(function(k){
+        $("rec-tab-" + k).classList.toggle("active", k === sheetKey);
+      });
+      $("rec-type-filter").style.display = sheetKey === 'invlog' ? "block" : "none";
+      $("records-list").innerHTML = "Filters set — tap \"Load Records\" to view.";
+    }
+
+    function loadRecordsData() {
+      var location = $("rec-location-filter").value;
+      var search = $("rec-search-input").value;
+      var type = $("rec-type-filter").value;
+
+      $("records-list").innerHTML = '<div class="empty-note" style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading records...", "");
+
+      if (currentRecordsSheet === 'invlog') {
+        executeJsonpTransfer({ action: "getInventoryLogRaw", type: type, branch: location === "All" ? "" : location, search: search }, function(res){
+          if (res && res.success) { renderInventoryLogRecords(res.data || []); setStatus("Loaded " + (res.data ? res.data.length : 0) + " rows.", "success"); }
+          else { setStatus("Failed to load Inventory Log.", "error"); }
+        }, function(e){ setStatus("Connection timeout.", "error"); });
+      } else if (currentRecordsSheet === 'baseline') {
+        executeJsonpTransfer({ action: "getOpeningBaselineRaw", location: location, search: search }, function(res){
+          if (res && res.success) { renderBaselineRecords(res.data || []); setStatus("Loaded " + (res.data ? res.data.length : 0) + " rows.", "success"); }
+          else { setStatus("Failed to load Opening Baseline.", "error"); }
+        }, function(e){ setStatus("Connection timeout.", "error"); });
+      } else {
+        executeJsonpTransfer({ action: "getStockDashboardRaw", location: location, search: search }, function(res){
+          if (res && res.success) { renderStockDashboardRecords(res.data || []); setStatus("Loaded " + (res.data ? res.data.length : 0) + " rows.", "success"); }
+          else { setStatus("Failed to load Stock Dashboard.", "error"); }
+        }, function(e){ setStatus("Connection timeout.", "error"); });
+      }
+    }
+
+    function renderInventoryLogRecords(rows) {
+      var box = $("records-list");
+      if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
+      var html = "";
+      rows.forEach(function(r){
+        var cls = r.type === "PRODUCTION" ? "prod" : (r.type === "DISPATCH" ? "disp" : "sale");
+        var recTag = r.receivedStatus === "Pending" ? ' <span style="color:var(--terracotta); font-weight:700;">(Pending)</span>' : (r.receivedStatus === "Received" ? ' <span style="color:var(--green); font-weight:700;">(Received)</span>' : '');
+        html += `
+          <div class="txn-row">
+            <div class="txn-left">
+              <span class="txn-type-tag ${cls}">${r.type}</span>
+              <span style="color:var(--text-soft); font-size:11px;">${r.timestamp} | ${r.product}${r.branch ? ' | ' + r.branch : ''}${recTag}</span>
+            </div>
+            <span class="txn-qty-change ${cls}">${r.qty}</span>
+          </div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function renderBaselineRecords(rows) {
+      var box = $("records-list");
+      if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
+      var html = "";
+      rows.forEach(function(r){
+        html += `
+          <div class="history-row">
+            <div class="history-left">
+              <strong style="font-size:14px;">${r.product}</strong>
+              <span style="color:var(--text-soft); font-size:11px;">${r.date} | ${r.location} | Entered: ${r.enteredAt}</span>
+            </div>
+            <span class="stock-badge">${r.openingStock}</span>
+          </div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function renderStockDashboardRecords(rows) {
+      var box = $("records-list");
+      if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
+      var html = "";
+      rows.forEach(function(r){
+        html += `
+          <div class="dash-row">
+            <div class="dash-row-top">
+              <span class="dash-row-name">${r.product}</span>
+              <span class="dash-row-loc">${r.location}</span>
+            </div>
+            <div class="dash-row-figs">
+              <span>${r.period}</span>
+              <span>Opening: <b>${r.opening}</b></span>
+              <span>In: <b>${r.stockIn}</b></span>
+              <span>Out: <b>${r.out}</b></span>
+              <span>Current: <b>${r.current}</b></span>
+            </div>
+            <div class="dash-row-value">Value: ₹${Number(r.value).toLocaleString('en-IN')}</div>
+          </div>`;
+      });
+      box.innerHTML = html;
+    }
 
     function loadGodownList() {
       $("godown-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading stock list...</div>';
