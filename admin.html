@@ -204,8 +204,10 @@
         <div class="filter-row">
           <input id="dash-date-input" class="filter-input" type="date">
           <input id="dash-month-input" class="filter-input" type="month" style="display:none;">
+          <button class="master-btn" type="button" style="flex:1 1 130px;" onclick="setDateToYesterday()">📅 Yesterday</button>
           <input id="dash-search-input" class="filter-input search-input" type="text" placeholder="Filter by product or category...">
         </div>
+        <p style="font-size:11.5px; color:var(--text-soft); margin:0;">Defaults to <b>yesterday</b>, not today — since your POS sales for a given day are usually uploaded the next day, "today" will always show 0 sales until tomorrow.</p>
 
         <button class="master-btn" type="button" onclick="loadStockDashboard()">🔄 Load Dashboard</button>
 
@@ -405,6 +407,13 @@
       $("period-btn-month").classList.toggle("active", type === 'month');
       $("dash-date-input").style.display = type === 'day' ? "block" : "none";
       $("dash-month-input").style.display = type === 'month' ? "block" : "none";
+    }
+
+    function setDateToYesterday() {
+      var yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      $("dash-date-input").value = yesterday.toISOString().slice(0, 10);
+      loadStockDashboard();
     }
 
     function loadStockDashboard() {
@@ -858,7 +867,9 @@
 
     window.addEventListener('DOMContentLoaded', function () {
       var todayStr = new Date().toISOString().slice(0,10);
-      $("dash-date-input").value = todayStr;
+      var yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      $("dash-date-input").value = yesterday.toISOString().slice(0,10);
       $("dash-month-input").value = todayStr.slice(0,7);
       loadStockDashboard();
       loadDiagnostics();
