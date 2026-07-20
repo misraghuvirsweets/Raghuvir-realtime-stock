@@ -171,6 +171,28 @@
     .popup-action-btn.cancel { flex: 1; background: #EFE9DE; color: var(--text); }
     .popup-action-btn.add-next { flex: 1; background: #261E16; color: #fff; }
     .popup-action-btn.done { width: 100%; background: #3D5E26; color: #fff; }
+
+    /* CHALLAN PREVIEW MODAL */
+    .challan-preview-card{ max-width:420px; max-height:85vh; overflow-y:auto; padding:0; }
+    .challan-header{ background:var(--gold-soft, #F3E7C9); padding:16px 18px 14px; border-radius:20px 20px 0 0; }
+    .challan-brand{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:#96731E; text-align:center; margin-bottom:2px; }
+    .challan-title{ font-size:10.5px; font-weight:700; letter-spacing:0.06em; color:var(--text-soft); text-align:center; text-transform:uppercase; margin-bottom:10px; }
+    .challan-meta-row{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:12px; }
+    .challan-meta-row span b{ color:var(--text); }
+    .challan-table{ padding:12px 18px; }
+    .challan-table-head{ display:flex; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-soft); border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:2px; }
+    .challan-col-num{ width:22px; }
+    .challan-col-item{ flex:1; padding-right:6px; }
+    .challan-col-cat{ width:80px; font-size:11.5px; }
+    .challan-col-qty{ width:44px; text-align:right; }
+    .challan-item-row{ display:flex; align-items:center; font-size:13px; padding:7px 0; border-bottom:1px dashed var(--border); }
+    .challan-item-row:last-child{ border-bottom:none; }
+    .challan-item-row .challan-col-qty{ font-weight:700; color:#96731E; }
+    .challan-footer{ padding:10px 18px; background:#FAF7F2; display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; color:var(--text); }
+    .challan-note{ font-size:11px; color:var(--text-soft); text-align:center; padding:10px 18px 0; }
+    .challan-actions{ padding:16px 18px 18px; display:flex; flex-direction:column; gap:10px; }
+    .challan-download-btn{ width:100%; padding:14px; border:none; border-radius:10px; font-size:14.5px; font-weight:700; font-family:inherit; cursor:pointer; background:#96731E; color:#fff; }
+    .challan-close-btn{ width:100%; padding:13px; border:none; border-radius:10px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; background:#EFE9DE; color:var(--text); }
   </style>
 </head>
 <body>
@@ -275,6 +297,16 @@
           <button class="popup-action-btn add-next" type="button" onclick="closeDashboardPopupCard('add_next')">➕ ADD & NEXT SCAN</button>
         </div>
         <button class="popup-action-btn done" type="button" onclick="closeDashboardPopupCard('done')">✔️ DONE</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="challan-preview-backdrop" class="dashboard-popup-backdrop">
+    <div class="dashboard-popup-card challan-preview-card">
+      <div id="challan-preview-body"></div>
+      <div class="challan-actions">
+        <button class="challan-download-btn" type="button" onclick="downloadChallanPDF()">📥 Download as PDF</button>
+        <button class="challan-close-btn" type="button" onclick="closeChallanPreview()">Close</button>
       </div>
     </div>
   </div>
@@ -759,25 +791,102 @@
 
       setLogStatus("Uploading records payload package to Cloud Sheets server...", "");
       var serializedBatch = JSON.stringify(centralBatchCollection);
-      var batchSnapshot = centralBatchCollection.slice(); // keep a copy for the PDF challan, since we clear the batch right after
+      var batchSnapshot = centralBatchCollection.slice(); // keep a copy for the challan preview, since we clear the batch right after
       var dispatchBranchSnapshot = selectedBranchName;
 
       executeJsonpTransfer({ action: "saveBatch", batch: serializedBatch }, function(res){
         if (res && res.success) {
           if (currentActiveMode === "out") {
-            generateDispatchChallanPDF(batchSnapshot, dispatchBranchSnapshot);
+            // Show the challan preview instead of an alert — the reset/exit happens when the
+            // user closes that preview (see closeChallanPreview), so they see it before moving on.
+            showChallanPreview(batchSnapshot, dispatchBranchSnapshot);
+          } else {
+            alert("All entries pushed successfully! Stock updated.");
+            centralBatchCollection = [];
+            refreshHistoryLogDisplay();
+            exitDashboardScreen();
           }
-          alert("All entries pushed successfully! Stock updated." + (currentActiveMode === "out" ? " The dispatch challan has opened in a new tab — save or print it from there." : ""));
-          centralBatchCollection = [];
-          refreshHistoryLogDisplay();
-          exitDashboardScreen();
         } else {
           setLogStatus("Database server execution process breakdown occurred.", "error");
         }
       }, function(e){ setLogStatus("Cloud submission pipeline connection timeout.", "error"); });
     }
 
-    /* ============== DISPATCH CHALLAN PDF ============== */
+    /* ============== DISPATCH CHALLAN PREVIEW (inline HTML, shown before any PDF is made) ============== */
+    var pendingChallanItems = null;
+    var pendingChallanBranch = null;
+
+    function buildChallanMetaStrings() {
+      var now = new Date();
+      return {
+        dateStr: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        timeStr: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+      };
+    }
+
+    function showChallanPreview(items, branchName) {
+      pendingChallanItems = items;
+      pendingChallanBranch = branchName;
+      var meta = buildChallanMetaStrings();
+
+      var itemsHtml = "";
+      items.forEach(function(it, idx){
+        itemsHtml += `
+          <div class="challan-item-row">
+            <span class="challan-col-num">${idx + 1}</span>
+            <span class="challan-col-item">${it.product}</span>
+            <span class="challan-col-cat">${it.category || '-'}</span>
+            <span class="challan-col-qty">x${it.qty}</span>
+          </div>`;
+      });
+
+      $("challan-preview-body").innerHTML = `
+        <div class="challan-header">
+          <div class="challan-brand">Raghuvir Sweets & Bakers</div>
+          <div class="challan-title">Dispatch Challan</div>
+          <div class="challan-meta-row">
+            <span>From: <b>Savali Factory</b></span>
+            <span>To: <b>${branchName || '-'}</b></span>
+          </div>
+          <div class="challan-meta-row" style="margin-top:4px;">
+            <span>🕐 <b>${meta.dateStr}  ${meta.timeStr}</b></span>
+            <span>${items.length} item(s)</span>
+          </div>
+        </div>
+        <div class="challan-table">
+          <div class="challan-table-head">
+            <span class="challan-col-num">#</span>
+            <span class="challan-col-item">Item Name</span>
+            <span class="challan-col-cat">Category</span>
+            <span class="challan-col-qty">Qty</span>
+          </div>
+          ${itemsHtml}
+        </div>
+        <div class="challan-footer">
+          <span>Total Items</span>
+          <span>${items.length}</span>
+        </div>
+        <p class="challan-note">This stock will appear as PENDING for ${branchName || 'the branch'} until receipt is confirmed on their Branch Dashboard.</p>
+      `;
+
+      $("challan-preview-backdrop").classList.add("open");
+    }
+
+    function downloadChallanPDF() {
+      if (!pendingChallanItems) return;
+      generateDispatchChallanPDF(pendingChallanItems, pendingChallanBranch);
+    }
+
+    function closeChallanPreview() {
+      $("challan-preview-backdrop").classList.remove("open");
+      pendingChallanItems = null;
+      pendingChallanBranch = null;
+      centralBatchCollection = [];
+      refreshHistoryLogDisplay();
+      exitDashboardScreen();
+    }
+
+    /* ============== DISPATCH CHALLAN PDF (built only when "Download as PDF" is tapped) ============== */
     function generateDispatchChallanPDF(items, branchName) {
       try {
         var jsPDFLib = window.jspdf && window.jspdf.jsPDF;
@@ -801,9 +910,7 @@
         doc.setDrawColor(220, 210, 191);
         doc.line(marginX, y, pageWidth - marginX, y);
 
-        var now = new Date();
-        var dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-        var timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        var meta = buildChallanMetaStrings();
 
         y += 24;
         doc.setFont("helvetica", "bold");
@@ -821,7 +928,7 @@
         doc.setFont("helvetica", "bold");
         doc.text("Date & Time:", marginX, y);
         doc.setFont("helvetica", "normal");
-        doc.text(dateStr + "  " + timeStr, marginX + 100, y);
+        doc.text(meta.dateStr + "  " + meta.timeStr, marginX + 100, y);
 
         y += 22;
         doc.line(marginX, y, pageWidth - marginX, y);
@@ -865,12 +972,8 @@
         doc.setTextColor(120, 110, 100);
         doc.text("This stock will appear as PENDING for " + (branchName || "the branch") + " until receipt is confirmed on the Branch Dashboard.", marginX, y);
 
-        // Open the PDF for preview first (browser's own PDF viewer) instead of forcing an
-        // immediate download — the user can then save/print it themselves from there once
-        // they've checked it looks right.
-        var pdfBlob = doc.output("blob");
-        var blobUrl = URL.createObjectURL(pdfBlob);
-        window.open(blobUrl, "_blank");
+        var fileName = "Dispatch_Challan_" + (branchName || "Branch").replace(/\s+/g, "_") + "_" + Date.now() + ".pdf";
+        doc.save(fileName);
       } catch (err) {
         console.error("PDF generation failed:", err);
       }
