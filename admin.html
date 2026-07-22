@@ -193,6 +193,7 @@
     <div class="top-tab-row">
       <button class="top-tab-btn active" id="top-tab-stock" type="button" onclick="switchTopTab('stock')">Stock</button>
       <button class="top-tab-btn" id="top-tab-valuation" type="button" onclick="switchTopTab('valuation')">Valuation</button>
+      <button class="top-tab-btn" id="top-tab-branchstock" type="button" onclick="switchTopTab('branchstock')">Branch Stock</button>
       <button class="top-tab-btn" id="top-tab-sales" type="button" onclick="switchTopTab('sales')">Sales (POS)</button>
       <button class="top-tab-btn" id="top-tab-links" type="button" onclick="switchTopTab('links')">Links</button>
       <button class="top-tab-btn" id="top-tab-godown" type="button" onclick="switchTopTab('godown')">Godown List</button>
@@ -269,6 +270,30 @@
 
         <label class="history-section-label">Item Wise Valuation</label>
         <div id="valuation-items-list" class="scroll-box grid-box">Choose filters above and tap "Load Valuation".</div>
+      </div>
+    </div>
+
+    <!-- =============== BRANCH STOCK (current stock only, branch-wise, no Savali Factory — that's in Godown List) =============== -->
+    <div class="panel" id="view-branchstock" hidden>
+      <div class="panel-head">📦 Branch Current Stock</div>
+      <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Only the 3 outlets — Savali Factory's stock is already shown in the <a href="javascript:void(0)" onclick="switchTopTab('godown')" style="color:var(--navy); font-weight:700;">Godown List</a> tab.</p>
+        <div class="filter-row">
+          <select id="branchstock-location-filter" class="filter-select">
+            <option value="All Branches">All Branches</option>
+            <option value="Ram Mandir">Ram Mandir</option>
+            <option value="Vishrambagh">Vishrambagh</option>
+            <option value="Miraj">Miraj</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <input id="branchstock-search-input" class="filter-input search-input" type="text" placeholder="Search product name...">
+          <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadBranchStock()">🔄 Load Current Stock</button>
+        </div>
+        <p style="font-size:11.5px; color:var(--text-soft); margin:0;">Shows stock as of <b>yesterday</b> (see the Stock tab for why) — no valuation here, just quantities.</p>
+
+        <label class="history-section-label">Current Stock</label>
+        <div id="branchstock-results-list" class="scroll-box grid-box">Choose filters above and tap "Load Current Stock".</div>
       </div>
     </div>
 
@@ -411,7 +436,7 @@
 
     var categoryLinksLoaded = false;
     function switchTopTab(tab) {
-      ["stock","valuation","sales","links","godown","records"].forEach(function(t){
+      ["stock","valuation","branchstock","sales","links","godown","records"].forEach(function(t){
         $("top-tab-" + t).classList.toggle("active", t === tab);
         $("view-" + t).hidden = (t !== tab);
       });
@@ -457,6 +482,7 @@
     }
 
     var LOCATION_ORDER = ["Savali Factory", "Ram Mandir", "Vishrambagh", "Miraj"];
+    var BRANCH_ORDER = ["Ram Mandir", "Vishrambagh", "Miraj"];
 
     function renderBranchOverviewStrip(rows) {
       var box = $("branch-overview-strip");
@@ -540,6 +566,58 @@
       box.innerHTML = html;
       $("dashboard-totals-bar").style.display = "flex";
       $("dashboard-total-value").innerText = "₹" + (data.totalValue || 0).toLocaleString('en-IN');
+    }
+
+    function loadBranchStock() {
+      var location = $("branchstock-location-filter").value;
+      var search = $("branchstock-search-input").value;
+      var yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      var periodValue = yesterday.toISOString().slice(0, 10);
+
+      setStatus("Computing current stock...", "");
+      $("branchstock-results-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+
+      executeJsonpTransfer({
+        action: "getStockDashboard", location: location,
+        periodType: "day", periodValue: periodValue, search: search
+      }, function(res){
+        if (res && res.success) {
+          renderBranchStock(res.data.rows || []);
+          setStatus("Current stock loaded — " + (res.data.rows ? res.data.rows.length : 0) + " item(s).", "success");
+        } else { setStatus("Failed to load current stock: " + (res && res.error ? res.error : "unknown error"), "error"); }
+      }, function(e){ setStatus("Connection timeout.", "error"); });
+    }
+
+    function renderBranchStock(rows) {
+      var box = $("branchstock-results-list");
+      if (!rows || rows.length === 0) {
+        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No stock activity found.</div>';
+        return;
+      }
+
+      var byLocation = {};
+      rows.forEach(function(r){ (byLocation[r.location] = byLocation[r.location] || []).push(r); });
+      var locationsPresent = BRANCH_ORDER.filter(function(l){ return byLocation[l]; });
+
+      var html = "";
+      locationsPresent.forEach(function(loc){
+        var locRows = byLocation[loc];
+        html += `<div class="location-group-header"><span>${loc}</span><span class="lgh-value">${locRows.length} item${locRows.length > 1 ? 's' : ''}</span></div>`;
+        locRows.forEach(function(r){
+          html += `
+            <div class="dash-row">
+              <div class="dash-row-top">
+                <span class="dash-row-name">${r.product}</span>
+                <span class="dash-row-loc">${r.category || '—'}</span>
+              </div>
+              <div class="dash-row-figs">
+                <span>Current Stock: <b>${r.current} ${r.unit}</b></span>
+              </div>
+            </div>`;
+        });
+      });
+      box.innerHTML = html;
     }
 
     function loadValuation() {
