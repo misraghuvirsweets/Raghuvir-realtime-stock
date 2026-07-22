@@ -87,6 +87,23 @@
     .dash-row-value{ font-weight:700; color:var(--gold); font-size:13px; }
     .dash-row-flag{ font-size:11px; color:var(--terracotta); font-weight:700; }
 
+    .branch-overview-strip{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    @media (min-width:640px){ .branch-overview-strip{ grid-template-columns:repeat(4,1fr); } }
+    .branch-overview-card{ background:var(--navy); color:#fff; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; }
+    .branch-overview-card.factory{ background:var(--green); }
+    .branch-overview-card .boc-name{ font-family:'Fraunces',serif; font-size:13.5px; font-weight:600; }
+    .branch-overview-card .boc-value{ font-size:17px; font-weight:700; }
+    .branch-overview-card .boc-meta{ font-size:11px; opacity:0.85; }
+
+    .location-group-header{
+      grid-column:1/-1; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy);
+      background:var(--navy-soft); padding:8px 12px; border-radius:8px; margin-top:6px;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .location-group-header:first-child{ margin-top:0; }
+    .location-group-header .lgh-value{ font-weight:700; color:var(--gold); font-size:12.5px; }
+
+
     .totals-bar{
       display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;
       background:var(--gold-soft); border-radius:10px; padding:12px 14px;
@@ -211,7 +228,10 @@
 
         <button class="master-btn" type="button" onclick="loadStockDashboard()">🔄 Load Dashboard</button>
 
-        <label class="history-section-label">Results</label>
+        <label class="history-section-label">All Branches — Real-Time Overview</label>
+        <div id="branch-overview-strip" class="branch-overview-strip"></div>
+
+        <label class="history-section-label">Item-Wise Detail</label>
         <div id="dashboard-results-list" class="scroll-box grid-box">Choose filters above and tap "Load Dashboard".</div>
 
         <div id="dashboard-totals-bar" class="totals-bar" style="display:none;">
@@ -430,43 +450,93 @@
         periodType: currentPeriodType, periodValue: periodValue, search: search
       }, function(res){
         if (res && res.success) {
-          renderStockDashboard(res.data);
+          renderStockDashboard(res.data, location === "All");
           setStatus("Dashboard loaded — " + res.data.rows.length + " rows.", "success");
         } else { setStatus("Failed to load dashboard: " + (res && res.error ? res.error : "unknown error"), "error"); }
       }, function(e){ setStatus("Dashboard connection timeout.", "error"); });
     }
 
-    function renderStockDashboard(data) {
+    var LOCATION_ORDER = ["Savali Factory", "Ram Mandir", "Vishrambagh", "Miraj"];
+
+    function renderBranchOverviewStrip(rows) {
+      var box = $("branch-overview-strip");
+      var byLocation = {};
+      LOCATION_ORDER.forEach(function(loc){ byLocation[loc] = { value: 0, items: 0, units: 0 }; });
+      rows.forEach(function(r){
+        if (!byLocation[r.location]) byLocation[r.location] = { value: 0, items: 0, units: 0 };
+        byLocation[r.location].value += r.value;
+        byLocation[r.location].units += r.current;
+        byLocation[r.location].items += 1;
+      });
+
+      var html = "";
+      LOCATION_ORDER.forEach(function(loc){
+        var v = byLocation[loc];
+        var isFactory = loc === "Savali Factory";
+        html += `
+          <div class="branch-overview-card${isFactory ? ' factory' : ''}">
+            <div class="boc-name">${loc}</div>
+            <div class="boc-value">₹${Math.round(v.value).toLocaleString('en-IN')}</div>
+            <div class="boc-meta">${v.items} item${v.items !== 1 ? 's' : ''} with stock</div>
+          </div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function renderStockDashboard(data, showOverview) {
       var box = $("dashboard-results-list");
       var rows = data.rows || [];
+
+      var overviewBox = $("branch-overview-strip");
+      if (showOverview) {
+        overviewBox.style.display = "grid";
+        renderBranchOverviewStrip(rows);
+      } else {
+        overviewBox.style.display = "none";
+      }
+
       if (rows.length === 0) {
         box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No matching stock activity for this period. If you expect data, check the System Status panel below to confirm Product Master / Sales months are loading.</div>';
         $("dashboard-totals-bar").style.display = "none";
         return;
       }
+
+      // Group rows by location (in a fixed, sensible order) so admin sees each branch as its
+      // own clearly-labeled section instead of one long mixed list — this is the "all branches at
+      // a glance" view.
+      var byLocation = {};
+      rows.forEach(function(r){ (byLocation[r.location] = byLocation[r.location] || []).push(r); });
+      var locationsPresent = LOCATION_ORDER.filter(function(l){ return byLocation[l]; })
+        .concat(Object.keys(byLocation).filter(function(l){ return LOCATION_ORDER.indexOf(l) === -1; }));
+
       var html = "";
-      for (var i = 0; i < rows.length; i++) {
-        var r = rows[i];
-        var outLabel = (r.location === "Savali Factory") ? "Dispatched Out" : "Sales";
-        var flag = !r.hasMasterRecord ? '<div class="dash-row-flag">⚠ Not in Product Master (rate unknown)</div>' : '';
-        var baselineFlag = (r.location !== "Savali Factory" && !r.hasBaseline) ? '<div class="dash-row-flag">⚠ No opening baseline set this month</div>' : '';
-        html += `
-          <div class="dash-row">
-            <div class="dash-row-top">
-              <span class="dash-row-name">${r.product}</span>
-              <span class="dash-row-loc">${r.location}</span>
-            </div>
-            <div class="dash-row-figs">
-              <span>Opening: <b>${r.opening}</b></span>
-              <span>Stock In: <b>${r.stockIn}</b></span>
-              <span>${outLabel}: <b>${r.out}</b></span>
-              <span>Current: <b>${r.current} ${r.unit}</b></span>
-            </div>
-            <div class="dash-row-value">Value: ₹${r.value.toLocaleString('en-IN')} (@ ₹${r.rate}/${r.unit})</div>
-            ${flag}
-            ${baselineFlag}
-          </div>`;
-      }
+      locationsPresent.forEach(function(loc){
+        var locRows = byLocation[loc];
+        var locValue = locRows.reduce(function(sum, r){ return sum + r.value; }, 0);
+        html += `<div class="location-group-header"><span>${loc}</span><span class="lgh-value">₹${locValue.toLocaleString('en-IN')} (${locRows.length} item${locRows.length > 1 ? 's' : ''})</span></div>`;
+
+        locRows.forEach(function(r){
+          var outLabel = (r.location === "Savali Factory") ? "Dispatched Out" : "Sales";
+          var flag = !r.hasMasterRecord ? '<div class="dash-row-flag">⚠ Not in Product Master (rate unknown)</div>' : '';
+          var baselineFlag = (r.location !== "Savali Factory" && !r.hasBaseline) ? '<div class="dash-row-flag">⚠ No opening baseline set this month</div>' : '';
+          html += `
+            <div class="dash-row">
+              <div class="dash-row-top">
+                <span class="dash-row-name">${r.product}</span>
+                <span class="dash-row-loc">${r.location}</span>
+              </div>
+              <div class="dash-row-figs">
+                <span>Opening: <b>${r.opening}</b></span>
+                <span>Stock In: <b>${r.stockIn}</b></span>
+                <span>${outLabel}: <b>${r.out}</b></span>
+                <span>Current: <b>${r.current} ${r.unit}</b></span>
+              </div>
+              <div class="dash-row-value">Value: ₹${r.value.toLocaleString('en-IN')} (@ ₹${r.rate}/${r.unit})</div>
+              ${flag}
+              ${baselineFlag}
+            </div>`;
+        });
+      });
       box.innerHTML = html;
       $("dashboard-totals-bar").style.display = "flex";
       $("dashboard-total-value").innerText = "₹" + (data.totalValue || 0).toLocaleString('en-IN');
