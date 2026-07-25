@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raghuvir Sweets & Bakers — Branch Dashboard</title>
@@ -56,6 +57,21 @@
     .batch-item-row{ display:flex; align-items:center; font-size:13px; padding:7px 0; border-bottom:1px dashed var(--border); }
     .batch-item-row:last-child{ border-bottom:none; }
     .batch-item-row .challan-col-qty{ font-weight:700; color:var(--gold); }
+    .batch-item-row-receive{ display:grid; grid-template-columns:22px 1fr auto 90px; align-items:center; gap:8px; }
+    .dispatched-qty-tag{ font-size:11.5px; color:var(--text-soft); white-space:nowrap; }
+    .dispatched-qty-tag b{ color:var(--text); }
+    .challan-table-head.batch-item-row-receive{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-soft); border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:2px; }
+    .received-qty-input{
+      width:100%; padding:8px 9px; border:1px solid var(--border); border-radius:8px;
+      font-size:13.5px; font-family:inherit; text-align:right; outline:none; background:#fff; color:var(--text);
+    }
+    .received-qty-input:focus{ border-color:var(--green); }
+    .receiver-name-label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-soft); font-weight:700; margin-bottom:6px; }
+    .receiver-name-input{
+      width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:10px;
+      font-size:14px; font-family:inherit; background:#fff; color:var(--text); outline:none; margin-bottom:12px; box-sizing:border-box;
+    }
+    .receiver-name-input:focus{ border-color:var(--green); }
     .challan-footer{ padding:10px 14px; background:#FAF7F2; border-top:1px dashed var(--border); display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; color:var(--text); }
     .batch-card-actions{ padding:14px; }
     .receive-btn{
@@ -111,39 +127,103 @@
   </div>
 
   <script>
-    function $(id){ return document.getElementById(id); }
+    // ============================================================================
+    // ⚠️ EDIT THIS — paste your deployed Apps Script Web App URL (ends in /exec).
+    // Deploy: Apps Script editor → Deploy → New deployment → Web app → Execute as Me,
+    // Access: Anyone. Copy the resulting URL here.
+    var APPS_SCRIPT_URL = 'PASTE_YOUR_DEPLOYED_WEB_APP_EXEC_URL_HERE';
+    // ============================================================================
+    //
+    // This page is hosted outside Apps Script (e.g. GitHub Pages), so it can't use
+    // google.script.run directly — that only works for HTML served BY Apps Script.
+    // This shim recreates the same google.script.run.functionName(args)
+    //   .withSuccessHandler(fn).withFailureHandler(fn)
+    // call pattern used throughout this file, but sends each call as a JSONP
+    // request (a dynamically-inserted <script> tag) to the deployed Web App,
+    // which routes it to the real server function via ?action=functionName.
+    // JSONP is used (not fetch) because Apps Script Web App responses don't
+    // include CORS headers, so a cross-origin fetch() would be blocked by the
+    // browser — a <script> tag isn't subject to that restriction.
+    (function () {
+      var callbackCounter = 0;
 
-    // ⚠️ Same Web App URL as the other pages.
-    var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFSBEAxxd1KQjYeeTBJZ86mABfH4ojsuyqXcLjMZ9NBfvUYJ9SS3nqmrMefEgDsU-w/exec";
+      function jsonpCall(functionName, args, successHandler, failureHandler) {
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR_DEPLOYED') === 0) {
+          var msg = 'APPS_SCRIPT_URL is not set yet — paste your deployed /exec URL at the top of the <script> block.';
+          console.error(msg);
+          if (failureHandler) failureHandler({ message: msg });
+          return;
+        }
+
+        var callbackName = '__gs_cb_' + (callbackCounter++) + '_' + Date.now();
+        var script = document.createElement('script');
+
+        function cleanup() {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = function (response) {
+          cleanup();
+          if (!response || response.__ok === false) {
+            var errMsg = (response && response.__error) || ('Unknown server error calling ' + functionName);
+            if (failureHandler) failureHandler({ message: errMsg }); else console.error(errMsg);
+            return;
+          }
+          if (successHandler) successHandler(response.result);
+        };
+
+        var url = APPS_SCRIPT_URL
+          + '?action=' + encodeURIComponent(functionName)
+          + '&callback=' + encodeURIComponent(callbackName)
+          + '&args=' + encodeURIComponent(JSON.stringify(args || []));
+
+        script.src = url;
+        script.onerror = function () {
+          cleanup();
+          if (failureHandler) failureHandler({ message: 'Network error calling ' + functionName + ' (check APPS_SCRIPT_URL and that the deployment is accessible to Anyone).' });
+        };
+        document.body.appendChild(script);
+      }
+
+      function makeRunProxy() {
+        var pendingSuccess = null;
+        var pendingFailure = null;
+
+        var proxy = new Proxy({}, {
+          get: function (target, prop) {
+            if (prop === 'withSuccessHandler') {
+              return function (fn) { pendingSuccess = fn; return proxy; };
+            }
+            if (prop === 'withFailureHandler') {
+              return function (fn) { pendingFailure = fn; return proxy; };
+            }
+            if (prop === 'withUserObject') {
+              return function () { return proxy; }; // not needed here, no-op for compatibility
+            }
+            return function () {
+              var args = Array.prototype.slice.call(arguments);
+              var s = pendingSuccess, f = pendingFailure;
+              pendingSuccess = null;
+              pendingFailure = null;
+              jsonpCall(String(prop), args, s, f);
+            };
+          }
+        });
+        return proxy;
+      }
+
+      window.google = window.google || {};
+      window.google.script = window.google.script || {};
+      window.google.script.run = makeRunProxy();
+    })();
+    function $(id){ return document.getElementById(id); }
 
     var urlParams = new URLSearchParams(window.location.search);
     var branchName = urlParams.get('branch') || "";
-    var VALID_BRANCHES = ["Ram Mandir", "Vishrambagh", "Miraj"];
+    var VALID_BRANCHES = ["Ram Mandir", "Vishrambagh"]; // must match Code.gs BRANCHES exactly
 
-    var jsonpCounter = 0;
-    function executeJsonpTransfer(params, successCallback, failureCallback) {
-      jsonpCounter++;
-      var cbName = "jsonpCallback_" + jsonpCounter + "_" + Date.now();
-      var scriptElement = document.createElement("script");
-      var networkTimeout = setTimeout(function(){ removeScript(); failureCallback(new Error("Timeout")); }, 20000);
-
-      function removeScript(){
-        clearTimeout(networkTimeout);
-        try { delete window[cbName]; } catch(e) { window[cbName] = undefined; }
-        if (scriptElement.parentNode) scriptElement.parentNode.removeChild(scriptElement);
-      }
-      window[cbName] = function(data){ removeScript(); successCallback(data); };
-      var queryParams = Object.keys(params).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(params[k])).join("&");
-      scriptElement.src = APPS_SCRIPT_URL + "?" + queryParams + "&callback=" + cbName;
-      scriptElement.onerror = function(){ removeScript(); failureCallback(new Error("Network Error")); };
-      document.body.appendChild(scriptElement);
-    }
-
-    function setStatus(msg, cls) {
-      var bar = $("global-status");
-      bar.innerText = msg;
-      bar.className = "status-msg-bar " + (cls || "");
-    }
+    function setStatus(msg, cls) { var bar = $("global-status"); bar.innerText = msg; bar.className = "status-msg-bar " + (cls || ""); }
 
     function switchBranchTab(tab) {
       $("tab-btn-pending").classList.toggle("active", tab === "pending");
@@ -155,155 +235,131 @@
 
     function loadPendingDispatches() {
       $("pending-list").innerHTML = '<div class="empty-note">Loading dispatched items...</div>';
-      executeJsonpTransfer({ action: "getPendingDispatches", branch: branchName }, function(res){
-        if (res && res.success) {
-          renderPendingList(res.data || []);
-        } else {
-          $("pending-list").innerHTML = '<div class="empty-note">Failed to load dispatched items.</div>';
-        }
-      }, function(e){ $("pending-list").innerHTML = '<div class="empty-note">Connection timeout.</div>'; });
+      google.script.run
+        .withSuccessHandler(function(data){ renderPendingList(data || []); })
+        .withFailureHandler(function(e){ $("pending-list").innerHTML = '<div class="empty-note">Failed to load dispatched items.</div>'; })
+        .getPendingDispatchesForBranchWeb(branchName);
     }
 
     function renderPendingList(batches) {
       var box = $("pending-list");
       var banner = $("notify-banner");
-      if (!batches || batches.length === 0) {
-        box.innerHTML = '<div class="empty-note">No dispatched items right now — you\'re all caught up!</div>';
-        banner.style.display = "none";
-        return;
-      }
+      if (!batches || batches.length === 0) { box.innerHTML = '<div class="empty-note">No dispatched items right now — you\'re all caught up!</div>'; banner.style.display = "none"; return; }
 
       banner.style.display = "flex";
       $("notify-text").innerText = "You have " + batches.length + " dispatch" + (batches.length > 1 ? "es" : "") + " waiting to be received!";
 
       var html = "";
-      batches.forEach(function(batch){
+      batches.forEach(function(batch, batchIdx){
+        var cardId = "pending-batch-" + batchIdx;
         var itemsHtml = "";
         batch.items.forEach(function(it, idx){
           itemsHtml += `
-            <div class="batch-item-row">
+            <div class="batch-item-row batch-item-row-receive">
               <span class="challan-col-num">${idx + 1}</span>
-              <span class="challan-col-item">${it.product}</span>
-              <span class="challan-col-cat">${it.category || '-'}</span>
-              <span class="challan-col-qty">x${it.qty}</span>
+              <span class="challan-col-item">${it.product}<br><span class="challan-col-cat" style="display:inline-block; margin-top:2px;">${it.category || '-'}</span></span>
+              <span class="dispatched-qty-tag">Dispatched: <b>${it.qty}</b></span>
+              <input class="received-qty-input" type="number" step="any" value="${it.qty}" aria-label="Received quantity for ${it.product}">
             </div>`;
         });
+        var challanNoLine = batch.challanNo ? `<span>Challan No: <b>${batch.challanNo}</b></span>` : '';
         html += `
-          <div class="batch-card">
+          <div class="batch-card" id="${cardId}" data-timestamp-iso="${batch.timestampISO}">
             <div class="challan-header">
               <div class="challan-brand">Raghuvir Sweets & Bakers</div>
               <div class="challan-title">Dispatch Challan</div>
-              <div class="challan-meta-row">
-                <span>From: <b>Savali Factory</b></span>
-                <span>To: <b>${branchName}</b></span>
-              </div>
-              <div class="challan-meta-row" style="margin-top:4px;">
-                <span>🕐 <b>${batch.timestampDisplay}</b></span>
-                <span>${batch.items.length} item(s)</span>
-              </div>
+              ${challanNoLine ? `<div class="challan-meta-row" style="margin-top:4px;">${challanNoLine}</div>` : ''}
+              <div class="challan-meta-row"><span>From: <b>Savali Factory</b></span><span>To: <b>${branchName}</b></span></div>
+              <div class="challan-meta-row" style="margin-top:4px;"><span>🕐 <b>${batch.timestampDisplay}</b></span><span>${batch.items.length} item(s)</span></div>
             </div>
             <div class="challan-table">
-              <div class="challan-table-head">
-                <span class="challan-col-num">#</span>
-                <span class="challan-col-item">Item Name</span>
-                <span class="challan-col-cat">Category</span>
-                <span class="challan-col-qty">Qty</span>
-              </div>
+              <div class="challan-table-head batch-item-row-receive"><span class="challan-col-num">#</span><span class="challan-col-item">Item Name</span><span class="dispatched-qty-tag">Dispatched</span><span>Received Qty</span></div>
               ${itemsHtml}
             </div>
-            <div class="challan-footer">
-              <span>Total Items</span>
-              <span>${batch.items.length}</span>
-            </div>
+            <div class="challan-footer"><span>Total Items</span><span>${batch.items.length}</span></div>
             <div class="batch-card-actions">
-              <button class="receive-btn" type="button" onclick="markReceived('${batch.timestampISO}', this)">✅ Mark as Received</button>
+              <label class="receiver-name-label" for="${cardId}-receiver-name">Receiver's Name</label>
+              <input class="receiver-name-input" id="${cardId}-receiver-name" type="text" placeholder="Enter the name of the person receiving this stock">
+              <button class="receive-btn" type="button" onclick="markReceived('${cardId}', this)">✅ Confirm &amp; Final Submit</button>
             </div>
           </div>`;
       });
       box.innerHTML = html;
     }
 
-    function markReceived(timestampISO, btnEl) {
-      if (!confirm("Confirm you've physically received this dispatch? This will add it to your branch stock.")) return;
+    function markReceived(cardId, btnEl) {
+      var card = $(cardId);
+      if (!card) return;
+      var timestampISO = card.getAttribute("data-timestamp-iso");
+
+      var receiverInput = $(cardId + "-receiver-name");
+      var receiverName = receiverInput ? receiverInput.value.trim() : "";
+      if (!receiverName) { alert("Please enter the receiver's name before confirming."); if (receiverInput) receiverInput.focus(); return; }
+
+      var qtyInputs = card.querySelectorAll(".received-qty-input");
+      var receivedQtyArray = [];
+      var hasInvalid = false;
+      qtyInputs.forEach(function(inp){
+        var v = parseFloat(inp.value);
+        if (isNaN(v) || v < 0) hasInvalid = true;
+        receivedQtyArray.push(isNaN(v) ? 0 : v);
+      });
+      if (hasInvalid) { alert("Please enter a valid received quantity (0 or more) for every item."); return; }
+
+      if (!confirm("Confirm receipt from " + receiverName + "? This will add the entered quantities to your branch stock.")) return;
+
       btnEl.disabled = true;
-      btnEl.innerText = "Marking as received...";
+      btnEl.innerText = "Submitting...";
       setStatus("Updating stock...", "");
 
-      executeJsonpTransfer({ action: "markDispatchReceived", branch: branchName, timestampISO: timestampISO }, function(res){
-        if (res && res.success) {
-          setStatus(res.itemsMarkedReceived + " item(s) marked as received. Stock updated!", "success");
-          loadPendingDispatches();
-        } else {
-          setStatus("Failed to mark as received: " + (res && res.error ? res.error : "unknown error"), "error");
-          btnEl.disabled = false;
-          btnEl.innerText = "✅ Mark as Received";
-        }
-      }, function(e){
-        setStatus("Connection timeout.", "error");
-        btnEl.disabled = false;
-        btnEl.innerText = "✅ Mark as Received";
-      });
+      google.script.run
+        .withSuccessHandler(function(res){
+          if (res && res.success) { setStatus(res.itemsMarkedReceived + " item(s) marked as received. Stock updated!", "success"); loadPendingDispatches(); }
+          else { setStatus("Failed to mark as received: " + (res && res.error ? res.error : "unknown error"), "error"); btnEl.disabled = false; btnEl.innerText = "✅ Confirm & Final Submit"; }
+        })
+        .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); btnEl.disabled = false; btnEl.innerText = "✅ Confirm & Final Submit"; })
+        .markDispatchBatchReceivedWeb(branchName, timestampISO, receivedQtyArray, receiverName);
     }
 
     function loadReceivedHistory() {
       $("history-list").innerHTML = '<div class="empty-note">Loading history...</div>';
-      executeJsonpTransfer({ action: "getReceivedHistory", branch: branchName }, function(res){
-        if (res && res.success) {
-          renderHistoryList(res.data || []);
-        } else {
-          $("history-list").innerHTML = '<div class="empty-note">Failed to load history.</div>';
-        }
-      }, function(e){ $("history-list").innerHTML = '<div class="empty-note">Connection timeout.</div>'; });
+      google.script.run
+        .withSuccessHandler(function(data){ renderHistoryList(data || []); })
+        .withFailureHandler(function(e){ $("history-list").innerHTML = '<div class="empty-note">Failed to load history.</div>'; })
+        .getReceivedHistoryForBranchWeb(branchName);
     }
 
     function renderHistoryList(batches) {
       var box = $("history-list");
-      if (!batches || batches.length === 0) {
-        box.innerHTML = '<div class="empty-note">No received dispatches yet.</div>';
-        return;
-      }
+      if (!batches || batches.length === 0) { box.innerHTML = '<div class="empty-note">No received dispatches yet.</div>'; return; }
       var html = "";
       batches.forEach(function(batch){
         var itemsHtml = "";
         batch.items.forEach(function(it, idx){
-          itemsHtml += `
-            <div class="batch-item-row">
-              <span class="challan-col-num">${idx + 1}</span>
-              <span class="challan-col-item">${it.product}</span>
-              <span class="challan-col-cat">${it.category || '-'}</span>
-              <span class="challan-col-qty">x${it.qty}</span>
-            </div>`;
+          var mismatch = (it.receivedQty !== undefined && Number(it.receivedQty) !== Number(it.qty));
+          var qtyDisplay = mismatch
+            ? `<span class="challan-col-qty" style="color:var(--terracotta);" title="Dispatched ${it.qty}, received ${it.receivedQty}">x${it.receivedQty} <span style="font-size:10px; font-weight:400;">(sent ${it.qty})</span></span>`
+            : `<span class="challan-col-qty">x${it.qty}</span>`;
+          itemsHtml += `<div class="batch-item-row"><span class="challan-col-num">${idx + 1}</span><span class="challan-col-item">${it.product}</span><span class="challan-col-cat">${it.category || '-'}</span>${qtyDisplay}</div>`;
         });
+        var challanNoLine = batch.challanNo ? `<span>Challan No: <b>${batch.challanNo}</b></span>` : '';
+        var receiverLine = batch.receivedBy ? `<span>Received by: <b>${batch.receivedBy}</b></span>` : '';
         html += `
           <div class="batch-card received">
             <div class="challan-header">
               <div class="challan-brand">Raghuvir Sweets & Bakers</div>
               <div class="challan-title">Dispatch Challan</div>
-              <div class="challan-meta-row">
-                <span>From: <b>Savali Factory</b></span>
-                <span>To: <b>${branchName}</b></span>
-              </div>
-              <div class="challan-meta-row" style="margin-top:4px;">
-                <span>🕐 Sent: <b>${batch.timestampDisplay}</b></span>
-                <span class="received-tag">✅ Received</span>
-              </div>
-              <div class="challan-meta-row" style="margin-top:4px;">
-                <span>Received at: <b>${batch.receivedAtDisplay || '—'}</b></span>
-              </div>
+              ${challanNoLine ? `<div class="challan-meta-row" style="margin-top:4px;">${challanNoLine}</div>` : ''}
+              <div class="challan-meta-row"><span>From: <b>Savali Factory</b></span><span>To: <b>${branchName}</b></span></div>
+              <div class="challan-meta-row" style="margin-top:4px;"><span>🕐 Sent: <b>${batch.timestampDisplay}</b></span><span class="received-tag">✅ Received</span></div>
+              <div class="challan-meta-row" style="margin-top:4px;"><span>Received at: <b>${batch.receivedAtDisplay || '—'}</b></span></div>
+              ${receiverLine ? `<div class="challan-meta-row" style="margin-top:4px;">${receiverLine}</div>` : ''}
             </div>
             <div class="challan-table">
-              <div class="challan-table-head">
-                <span class="challan-col-num">#</span>
-                <span class="challan-col-item">Item Name</span>
-                <span class="challan-col-cat">Category</span>
-                <span class="challan-col-qty">Qty</span>
-              </div>
+              <div class="challan-table-head"><span class="challan-col-num">#</span><span class="challan-col-item">Item Name</span><span class="challan-col-cat">Category</span><span class="challan-col-qty">Qty</span></div>
               ${itemsHtml}
             </div>
-            <div class="challan-footer">
-              <span>Total Items</span>
-              <span>${batch.items.length}</span>
-            </div>
+            <div class="challan-footer"><span>Total Items</span><span>${batch.items.length}</span></div>
           </div>`;
       });
       box.innerHTML = html;
@@ -313,7 +369,7 @@
       var matched = VALID_BRANCHES.find(function(b){ return b.toLowerCase() === branchName.toLowerCase(); });
       if (!matched) {
         $("branch-name-tag").innerText = "⚠ No valid branch specified in link";
-        $("pending-list").innerHTML = '<div class="empty-note">This link is missing a valid ?branch= parameter. Ask your admin for the correct branch dashboard link.</div>';
+        $("pending-list").innerHTML = '<div class="empty-note">This link is missing a valid ?branch= parameter. Ask your admin for the correct branch dashboard link (see the Links tab in the Admin Dashboard).</div>';
         return;
       }
       branchName = matched;
