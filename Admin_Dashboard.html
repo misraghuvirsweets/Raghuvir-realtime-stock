@@ -188,20 +188,21 @@
             <option value="ALL">All</option><option value="OK">OK</option><option value="MISMATCH">Mismatch</option>
             <option value="No Closing Entry">No Closing Entry</option><option value="No Opening Data">No Opening Data</option>
           </select>
+          <select id="v-categorySelect" class="filter-select"><option value="ALL">All Categories</option></select>
         </div>
         <div class="formula-banner" id="v-formulaBanner"></div>
         <div class="summary" id="v-summary"></div>
         <div class="table-wrap">
           <table class="verify-table" id="v-dataTable">
             <thead><tr>
-              <th>Branch</th><th>Item</th>
+              <th>Branch</th><th>Item</th><th>Category</th>
               <th>Opening Stock<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of Previous Date)</span></th>
               <th>Dispatch</th><th>Sales</th>
               <th>Expected<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">Closing</span></th>
               <th>Actual Closing<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of This Date)</span></th>
               <th>Variance</th><th>Status</th>
             </tr></thead>
-            <tbody id="v-tableBody"><tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
+            <tbody id="v-tableBody"><tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -227,11 +228,17 @@
     <div class="panel" id="view-godown" hidden>
       <div class="panel-head">🏭 Godown Stock (Savali Factory — Master List)</div>
       <div class="panel-body" id="godown-list-view">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Shows current cumulative stock (all-time Production − Dispatch) by default. Pick a date and tap "View" to see what stock looked like at the end of that day instead.</p>
+        <div class="filter-row">
+          <select id="godown-category-filter" class="filter-select"><option value="All">All Categories</option></select>
+          <input id="godown-asof-date" class="filter-input" type="date">
+        </div>
         <div class="filter-row">
           <input id="godown-search-input" class="filter-input search-input" type="text" placeholder="Search item name or code..." oninput="filterGodownList(this.value)">
           <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadGodownList()">🔄 Refresh Stock List</button>
         </div>
-        <label class="history-section-label">Item Wise Current Stock (tap item for history)</label>
+        <button class="manual-secondary-btn-inline" type="button" onclick="$('godown-asof-date').value=''; loadGodownList();" style="font-size:11.5px; color:var(--text-soft); background:none; border:none; text-decoration:underline; padding:2px 0; cursor:pointer;">Clear date (back to current stock)</button>
+        <label class="history-section-label">Item Wise <span id="godown-list-title-suffix">Current</span> Stock (tap item for history)</label>
         <div id="godown-list" class="scroll-box grid-box">Loading...</div>
       </div>
       <div class="panel-body" id="godown-history-view" style="display:none;">
@@ -252,7 +259,7 @@
           <button class="sub-tab-btn" id="rec-tab-stockdash" type="button" onclick="switchRecordsSheet('stockdash')">Stock Dashboard Snapshot</button>
         </div>
         <div class="filter-row">
-          <select id="rec-type-filter" class="filter-select">
+          <select id="rec-type-filter" class="filter-select" onchange="handleRecTypeChange()">
             <option value="All">All Types</option><option value="PRODUCTION">Production</option><option value="DISPATCH">Dispatch</option><option value="SALE">Sale</option>
           </select>
           <select id="rec-location-filter" class="filter-select">
@@ -446,6 +453,11 @@
         branches.forEach(function(b){ var opt = document.createElement("option"); opt.value = b; opt.textContent = b; sel.appendChild(opt); });
       }).getBranchList();
 
+      google.script.run.withSuccessHandler(function(cats){
+        var sel = $("v-categorySelect");
+        (cats || []).forEach(function(c){ var opt = document.createElement("option"); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
+      }).getCategoriesWeb();
+
       google.script.run.withSuccessHandler(function(dates){
         var input = $("v-dateSelect");
         var defaultDate;
@@ -460,29 +472,33 @@
       if (!dateStr) return;
       currentDateStr = dateStr; currentPrevStr = prevDayStr(dateStr);
       updateVerifyBanner($("v-branchSelect").value);
-      $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading… (auto-generates if not processed yet)</td></tr>';
+      $("v-tableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">Loading… (auto-generates if not processed yet)</td></tr>';
       google.script.run
         .withSuccessHandler(function(res){
-          if (!res.success) { $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">' + res.message + '</td></tr>'; allVRows = []; return; }
+          if (!res.success) { $("v-tableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">' + res.message + '</td></tr>'; allVRows = []; return; }
           allVRows = res.rows; renderVerify();
         })
-        .withFailureHandler(function(err){ $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Error: ' + err.message + '</td></tr>'; })
+        .withFailureHandler(function(err){ $("v-tableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">Error: ' + err.message + '</td></tr>'; })
         .getOrGenerateVerificationData(dateStr);
     }
 
     function renderVerify() {
-      var branchFilter = $("v-branchSelect").value, statusFilter = $("v-statusSelect").value;
+      var branchFilter = $("v-branchSelect").value, statusFilter = $("v-statusSelect").value, categoryFilter = $("v-categorySelect").value;
       updateVerifyBanner(branchFilter);
-      var rows = allVRows.filter(function(r){ return (branchFilter === 'ALL' || r.branch === branchFilter) && (statusFilter === 'ALL' || r.status === statusFilter); });
+      var rows = allVRows.filter(function(r){
+        return (branchFilter === 'ALL' || r.branch === branchFilter)
+          && (statusFilter === 'ALL' || r.status === statusFilter)
+          && (categoryFilter === 'ALL' || (r.category || '') === categoryFilter);
+      });
 
       var tbody = $("v-tableBody"); tbody.innerHTML = '';
-      if (!rows.length) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">No rows match this filter.</td></tr>';
+      if (!rows.length) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">No rows match this filter.</td></tr>';
       rows.forEach(function(r){
         var tr = document.createElement('tr');
         if (r.status === 'MISMATCH') tr.className = 'mismatch'; else if (r.status.indexOf('No ') === 0) tr.className = 'noentry';
         var statusClass = 'status-' + r.status.replace(/ /g, '-');
         var openingDisp = (r.opening === '' ? '—' : r.opening);
-        tr.innerHTML = '<td>' + r.branch + '</td><td>' + r.item + '</td><td>' + openingDisp + '</td>' +
+        tr.innerHTML = '<td>' + r.branch + '</td><td>' + r.item + '</td><td>' + (r.category || '—') + '</td><td>' + openingDisp + '</td>' +
           '<td>' + r.dispatch + '</td><td>' + r.sales + '</td><td>' + r.expected + '</td>' +
           '<td>' + (r.actual === '' ? '—' : r.actual) + '</td><td>' + (r.variance === '' ? '—' : r.variance) + '</td>' +
           '<td><span class="status-pill ' + statusClass + '">' + r.status + '</span></td>';
@@ -503,6 +519,7 @@
     $("v-dateSelect").addEventListener('change', function(e){ loadVerifyData(e.target.value); });
     $("v-branchSelect").addEventListener('change', renderVerify);
     $("v-statusSelect").addEventListener('change', renderVerify);
+    $("v-categorySelect").addEventListener('change', renderVerify);
 
     /* ======================= SALES (POS) TAB ======================= */
     function loadSalesMonths() {
@@ -551,21 +568,41 @@
 
     /* ======================= GODOWN TAB ======================= */
     var godownListCache = [];
+    var godownCategoriesLoaded = false;
+
+    function loadGodownCategories() {
+      if (godownCategoriesLoaded) return;
+      godownCategoriesLoaded = true;
+      google.script.run.withSuccessHandler(function(cats){
+        var sel = $("godown-category-filter");
+        (cats || []).forEach(function(c){ var opt = document.createElement("option"); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
+      }).getCategoriesWeb();
+    }
 
     function loadGodownList() {
+      loadGodownCategories();
+      var asOfDate = $("godown-asof-date").value; // '' = current/all-time
+      $("godown-list-title-suffix").innerText = asOfDate ? ("as of " + asOfDate) : "Current";
       $("godown-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading stock list...</div>';
-      setStatus("Fetching live godown stock...", "");
+      setStatus(asOfDate ? ("Fetching godown stock as of " + asOfDate + "...") : "Fetching live godown stock...", "");
       google.script.run.withSuccessHandler(function(data){
-        godownListCache = data || []; renderGodownList(godownListCache);
+        godownListCache = data || []; filterGodownList($("godown-search-input").value);
         setStatus("Godown list updated. " + godownListCache.length + " items.", "success");
-      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getStockListWeb();
+      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getStockListWeb(asOfDate || null);
     }
 
     function filterGodownList(query) {
       var q = (query || "").trim().toLowerCase();
-      if (!q) { renderGodownList(godownListCache); return; }
-      renderGodownList(godownListCache.filter(function(item){ return (item.name && item.name.toLowerCase().indexOf(q) !== -1) || (item.barcode && String(item.barcode).toLowerCase().indexOf(q) !== -1) || (item.category && item.category.toLowerCase().indexOf(q) !== -1); }));
+      var categoryFilter = $("godown-category-filter").value;
+      var list = godownListCache.filter(function(item){
+        var matchesCategory = (categoryFilter === "All" || item.category === categoryFilter);
+        var matchesSearch = !q || (item.name && item.name.toLowerCase().indexOf(q) !== -1) || (item.barcode && String(item.barcode).toLowerCase().indexOf(q) !== -1) || (item.category && item.category.toLowerCase().indexOf(q) !== -1);
+        return matchesCategory && matchesSearch;
+      });
+      renderGodownList(list);
     }
+
+    $("godown-category-filter").addEventListener('change', function(){ filterGodownList($("godown-search-input").value); });
 
     function renderGodownList(list) {
       var box = $("godown-list");
@@ -615,7 +652,22 @@
       currentRecordsSheet = sheetKey;
       ["invlog","verify","stockdash"].forEach(function(k){ $("rec-tab-" + k).classList.toggle("active", k === sheetKey); });
       $("rec-type-filter").style.display = sheetKey === 'invlog' ? "block" : "none";
+      if (sheetKey === 'invlog') handleRecTypeChange(); else $("rec-location-filter").disabled = false;
       $("records-list").innerHTML = "Filters set — tap \"Load Records\" to view.";
+    }
+
+    // Production only ever happens at Savali Factory, so once "Production" is picked there's
+    // no other valid location to choose — auto-set it and lock the dropdown so the user
+    // doesn't need to separately select the branch. Any other Type re-enables normal choice.
+    function handleRecTypeChange() {
+      var type = $("rec-type-filter").value;
+      var locSel = $("rec-location-filter");
+      if (type === 'PRODUCTION') {
+        locSel.value = 'Savali Factory';
+        locSel.disabled = true;
+      } else {
+        locSel.disabled = false;
+      }
     }
 
     function loadRecordsData() {
