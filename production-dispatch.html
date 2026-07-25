@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raghuvir Sweets & Bakers — Production &amp; Dispatch Desk</title>
@@ -172,9 +173,8 @@
     .popup-action-btn.add-next { flex: 1; background: #261E16; color: #fff; }
     .popup-action-btn.done { width: 100%; background: #3D5E26; color: #fff; }
 
-    /* CHALLAN PREVIEW MODAL */
     .challan-preview-card{ max-width:420px; max-height:85vh; overflow-y:auto; padding:0; }
-    .challan-header{ background:var(--gold-soft, #F3E7C9); padding:16px 18px 14px; border-radius:20px 20px 0 0; }
+    .challan-header{ background:#F3E7C9; padding:16px 18px 14px; border-radius:20px 20px 0 0; }
     .challan-brand{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:#96731E; text-align:center; margin-bottom:2px; }
     .challan-title{ font-size:10.5px; font-weight:700; letter-spacing:0.06em; color:var(--text-soft); text-align:center; text-transform:uppercase; margin-bottom:10px; }
     .challan-meta-row{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:12px; }
@@ -224,11 +224,7 @@
       <div class="panel-body">
         <div id="branch-select-section">
           <label class="history-section-label">Select Dispatch Branch</label>
-          <div class="branch-btn-row">
-            <button class="branch-select-btn" type="button" data-branch="Ram Mandir" onclick="selectBranch('Ram Mandir')">Ram Mandir</button>
-            <button class="branch-select-btn" type="button" data-branch="Vishrambagh" onclick="selectBranch('Vishrambagh')">Vishrambagh</button>
-            <button class="branch-select-btn" type="button" data-branch="Miraj" onclick="selectBranch('Miraj')">Miraj</button>
-          </div>
+          <div class="branch-btn-row" id="branch-btn-row"></div>
           <div id="branch-current-tag" class="branch-current-tag"></div>
         </div>
 
@@ -258,7 +254,6 @@
 
           <div id="manual-items-grid" class="manual-items-grid">Pick a category above to load its items.</div>
 
-          <button class="master-submit-btn" type="button" onclick="addManualItemsToBatch()">➕ Add Entered Items to Batch</button>
           <button class="manual-secondary-btn" type="button" onclick="closeManualEntryPanel()">← Back to Scan</button>
         </div>
 
@@ -314,10 +309,99 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
+    // ============================================================================
+    // ⚠️ EDIT THIS — paste your deployed Apps Script Web App URL (ends in /exec).
+    // Deploy: Apps Script editor → Deploy → New deployment → Web app → Execute as Me,
+    // Access: Anyone. Copy the resulting URL here.
+    var APPS_SCRIPT_URL = 'PASTE_YOUR_DEPLOYED_WEB_APP_EXEC_URL_HERE';
+    // ============================================================================
+    //
+    // This page is hosted outside Apps Script (e.g. GitHub Pages), so it can't use
+    // google.script.run directly — that only works for HTML served BY Apps Script.
+    // This shim recreates the same google.script.run.functionName(args)
+    //   .withSuccessHandler(fn).withFailureHandler(fn)
+    // call pattern used throughout this file, but sends each call as a JSONP
+    // request (a dynamically-inserted <script> tag) to the deployed Web App,
+    // which routes it to the real server function via ?action=functionName.
+    // JSONP is used (not fetch) because Apps Script Web App responses don't
+    // include CORS headers, so a cross-origin fetch() would be blocked by the
+    // browser — a <script> tag isn't subject to that restriction.
+    (function () {
+      var callbackCounter = 0;
+
+      function jsonpCall(functionName, args, successHandler, failureHandler) {
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR_DEPLOYED') === 0) {
+          var msg = 'APPS_SCRIPT_URL is not set yet — paste your deployed /exec URL at the top of the <script> block.';
+          console.error(msg);
+          if (failureHandler) failureHandler({ message: msg });
+          return;
+        }
+
+        var callbackName = '__gs_cb_' + (callbackCounter++) + '_' + Date.now();
+        var script = document.createElement('script');
+
+        function cleanup() {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = function (response) {
+          cleanup();
+          if (!response || response.__ok === false) {
+            var errMsg = (response && response.__error) || ('Unknown server error calling ' + functionName);
+            if (failureHandler) failureHandler({ message: errMsg }); else console.error(errMsg);
+            return;
+          }
+          if (successHandler) successHandler(response.result);
+        };
+
+        var url = APPS_SCRIPT_URL
+          + '?action=' + encodeURIComponent(functionName)
+          + '&callback=' + encodeURIComponent(callbackName)
+          + '&args=' + encodeURIComponent(JSON.stringify(args || []));
+
+        script.src = url;
+        script.onerror = function () {
+          cleanup();
+          if (failureHandler) failureHandler({ message: 'Network error calling ' + functionName + ' (check APPS_SCRIPT_URL and that the deployment is accessible to Anyone).' });
+        };
+        document.body.appendChild(script);
+      }
+
+      function makeRunProxy() {
+        var pendingSuccess = null;
+        var pendingFailure = null;
+
+        var proxy = new Proxy({}, {
+          get: function (target, prop) {
+            if (prop === 'withSuccessHandler') {
+              return function (fn) { pendingSuccess = fn; return proxy; };
+            }
+            if (prop === 'withFailureHandler') {
+              return function (fn) { pendingFailure = fn; return proxy; };
+            }
+            if (prop === 'withUserObject') {
+              return function () { return proxy; }; // not needed here, no-op for compatibility
+            }
+            return function () {
+              var args = Array.prototype.slice.call(arguments);
+              var s = pendingSuccess, f = pendingFailure;
+              pendingSuccess = null;
+              pendingFailure = null;
+              jsonpCall(String(prop), args, s, f);
+            };
+          }
+        });
+        return proxy;
+      }
+
+      window.google = window.google || {};
+      window.google.script = window.google.script || {};
+      window.google.script.run = makeRunProxy();
+    })();
     function $(id){ return document.getElementById(id); }
 
-    // ⚠️ Replace with your Web App /exec URL after deploying the updated Code.gs
-    var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFSBEAxxd1KQjYeeTBJZ86mABfH4ojsuyqXcLjMZ9NBfvUYJ9SS3nqmrMefEgDsU-w/exec";
+    var BRANCHES = ['Ram Mandir', 'Vishrambagh']; // must match Code.gs BRANCHES exactly
 
     var currentActiveMode = null;
     var centralBatchCollection = [];
@@ -325,28 +409,17 @@
     var selectedBranchName = null;
 
     var urlParamsForPage = new URLSearchParams(window.location.search);
-    var manualPresetCategory = urlParamsForPage.get('category'); // used by category-wise links from the Admin Dashboard's Links tab
-    var categoryLockActive = !!manualPresetCategory; // if a category came in via the URL, lock it for this whole session
+    var manualPresetCategory = urlParamsForPage.get('category');
+    var categoryLockActive = !!manualPresetCategory;
     var manualCategoriesLoaded = false;
 
-    var jsonpCounter = 0;
-    function executeJsonpTransfer(params, successCallback, failureCallback) {
-      jsonpCounter++;
-      var cbName = "jsonpCallback_" + jsonpCounter + "_" + Date.now();
-      var scriptElement = document.createElement("script");
-      var networkTimeout = setTimeout(function(){ removeScript(); failureCallback(new Error("Timeout")); }, 15000);
-
-      function removeScript(){
-        clearTimeout(networkTimeout);
-        try { delete window[cbName]; } catch(e) { window[cbName] = undefined; }
-        if (scriptElement.parentNode) scriptElement.parentNode.removeChild(scriptElement);
-      }
-      window[cbName] = function(data){ removeScript(); successCallback(data); };
-      var queryParams = Object.keys(params).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(params[k])).join("&");
-      scriptElement.src = APPS_SCRIPT_URL + "?" + queryParams + "&callback=" + cbName;
-      scriptElement.onerror = function(){ removeScript(); failureCallback(new Error("Network Error")); };
-      document.body.appendChild(scriptElement);
-    }
+    // Render branch buttons once from the BRANCHES list above.
+    (function renderBranchButtons(){
+      var row = $("branch-btn-row");
+      row.innerHTML = BRANCHES.map(function(b){
+        return '<button class="branch-select-btn" type="button" data-branch="' + b + '" onclick="selectBranch(\'' + b + '\')">' + b + '</button>';
+      }).join('');
+    })();
 
     function openDashboardScreen(mode) {
       currentActiveMode = mode;
@@ -361,14 +434,8 @@
       $("scan-box-wrapper").style.display = "flex";
       $("manual-entry-btn").style.display = "flex";
 
-      if (mode === "out") {
-        $("branch-select-section").style.display = "block";
-        updateBranchButtonStates();
-        updateScanBoxLockState();
-      } else {
-        $("branch-select-section").style.display = "none";
-        updateScanBoxLockState();
-      }
+      if (mode === "out") { $("branch-select-section").style.display = "block"; updateBranchButtonStates(); updateScanBoxLockState(); }
+      else { $("branch-select-section").style.display = "none"; updateScanBoxLockState(); }
 
       refreshHistoryLogDisplay();
       setLogStatus("Dashboard Workspace Initiated.", "success");
@@ -390,25 +457,16 @@
     }
 
     function updateBranchButtonStates() {
-      var buttons = document.querySelectorAll(".branch-select-btn");
-      buttons.forEach(function(btn){
-        if (btn.getAttribute("data-branch") === selectedBranchName) btn.classList.add("active");
-        else btn.classList.remove("active");
+      document.querySelectorAll(".branch-select-btn").forEach(function(btn){
+        btn.classList.toggle("active", btn.getAttribute("data-branch") === selectedBranchName);
       });
-      var tag = $("branch-current-tag");
-      tag.innerText = selectedBranchName ? ("Selected: " + selectedBranchName) : "Please select a branch to begin scanning.";
+      $("branch-current-tag").innerText = selectedBranchName ? ("Selected: " + selectedBranchName) : "Please select a branch to begin scanning.";
     }
 
     function updateScanBoxLockState() {
-      var scanBox = $("scan-box-wrapper");
-      var manualBtn = $("manual-entry-btn");
-      if (currentActiveMode === "out" && !selectedBranchName) {
-        scanBox.classList.add("disabled");
-        manualBtn.classList.add("disabled");
-      } else {
-        scanBox.classList.remove("disabled");
-        manualBtn.classList.remove("disabled");
-      }
+      var scanBox = $("scan-box-wrapper"), manualBtn = $("manual-entry-btn");
+      if (currentActiveMode === "out" && !selectedBranchName) { scanBox.classList.add("disabled"); manualBtn.classList.add("disabled"); }
+      else { scanBox.classList.remove("disabled"); manualBtn.classList.remove("disabled"); }
     }
 
     function deleteRowEntryItem(index) {
@@ -450,10 +508,7 @@
     var DETECT_READERS = ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader", "code_39_reader"];
 
     function triggerLiveScanner() {
-      if (currentActiveMode === "out" && !selectedBranchName) {
-        alert("Please select a Branch (Ram Mandir / Vishrambagh / Miraj) before scanning.");
-        return;
-      }
+      if (currentActiveMode === "out" && !selectedBranchName) { alert("Please select a Branch before scanning."); return; }
       if ($("scanner-modal").classList.contains("active")) return;
       trackingSequence = [];
       $("scanner-modal").classList.add("active");
@@ -461,10 +516,9 @@
     }
 
     async function startNativeCameraScanner() {
-      try { nativeDetectorObject = new BarcodeDetector({ formats: ["code_128", "code_39", "ean_13", "ean_8", "upc_a"] }); } catch(e){}
-      try {
-        mediaStreamInstance = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } });
-      } catch (err) { startQuaggaFallbackScanner(); return; }
+      try { nativeDetectorObject = new BarcodeDetector({ formats: ["code_128","code_39","ean_13","ean_8","upc_a"] }); } catch(e){}
+      try { mediaStreamInstance = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } }); }
+      catch (err) { startQuaggaFallbackScanner(); return; }
 
       var liveVideo = document.createElement("video");
       liveVideo.setAttribute("playsinline", ""); liveVideo.muted = true; liveVideo.srcObject = mediaStreamInstance;
@@ -481,15 +535,9 @@
           var codesFound = await nativeDetectorObject.detect(videoElement);
           if (codesFound && codesFound.length > 0 && codesFound[0].rawValue) {
             var rawCode = codesFound[0].rawValue;
-            // Require the SAME code to be read twice in a row before accepting it (same debounce
-            // the Quagga fallback already uses) — this, plus the slightly longer poll interval
-            // below, makes scanning feel deliberate instead of firing instantly on the first frame.
             trackingSequence.push(rawCode);
             if (trackingSequence.length > 2) trackingSequence.shift();
-            if (trackingSequence.length === 2 && trackingSequence[0] === trackingSequence[1]) {
-              evaluateIncomingScannedCode(rawCode);
-              return;
-            }
+            if (trackingSequence.length === 2 && trackingSequence[0] === trackingSequence[1]) { evaluateIncomingScannedCode(rawCode); return; }
           }
         } catch (e) {}
         await new Promise(r => setTimeout(r, 220));
@@ -526,11 +574,7 @@
       scannerRunning = false;
       if (navigator.vibrate) navigator.vibrate(65);
 
-      // Some weight-scale barcodes come through prefixed with "#" (e.g. "#80421250").
-      // Strip any leading "#" first, then parse the first 4 characters as the item code
-      // and everything after that as the weight, same as before.
       var cleanedCode = codeString.replace(/^#+/, '');
-
       var parsedBarcode = cleanedCode;
       var isolatedWeightVal = 0;
       var isWeightScaleBarcode = false;
@@ -544,10 +588,7 @@
 
       terminateLiveScanner();
 
-      currentScannedPayload = {
-        barcode: parsedBarcode, qty: isolatedWeightVal, isWeight: isWeightScaleBarcode,
-        product: "Code: " + parsedBarcode, category: "Loading Details..."
-      };
+      currentScannedPayload = { barcode: parsedBarcode, qty: isolatedWeightVal, isWeight: isWeightScaleBarcode, product: "Code: " + parsedBarcode, category: "Loading Details..." };
 
       if (!isWeightScaleBarcode) {
         $("pop-product-name").innerText = currentScannedPayload.product;
@@ -557,79 +598,53 @@
         setTimeout(() => $("pop-qty-input").focus(), 100);
       }
 
-      executeJsonpTransfer({ action: "lookup", barcode: parsedBarcode }, function(response){
-        if (response && response.success && response.data) {
-          currentScannedPayload.product = response.data.name;
-          currentScannedPayload.category = response.data.category;
-
-          if (isWeightScaleBarcode) {
-            commitPayloadEntryToStaging(currentScannedPayload.qty);
-            setTimeout(function() { triggerLiveScanner(); }, 250);
+      google.script.run
+        .withSuccessHandler(function(data){
+          if (data) {
+            currentScannedPayload.product = data.name;
+            currentScannedPayload.category = data.category;
+            if (isWeightScaleBarcode) { commitPayloadEntryToStaging(currentScannedPayload.qty); setTimeout(function(){ triggerLiveScanner(); }, 250); }
+            else { $("pop-product-name").innerText = data.name; $("pop-product-cat").innerText = data.category; }
           } else {
-            $("pop-product-name").innerText = response.data.name;
-            $("pop-product-cat").innerText = response.data.category;
+            if (!isWeightScaleBarcode) { $("pop-product-name").innerText = "New Item (" + parsedBarcode + ")"; $("pop-product-cat").innerText = "Not Found"; }
+            else {
+              currentScannedPayload.product = "Unknown Weight Item (" + parsedBarcode + ")";
+              currentScannedPayload.category = "Master Missing";
+              commitPayloadEntryToStaging(currentScannedPayload.qty);
+              setTimeout(function(){ triggerLiveScanner(); }, 250);
+            }
           }
-        } else {
-          if (!isWeightScaleBarcode) {
-            $("pop-product-name").innerText = "New Item (" + parsedBarcode + ")";
-            $("pop-product-cat").innerText = "Not Found";
-          } else {
-            currentScannedPayload.product = "Unknown Weight Item (" + parsedBarcode + ")";
-            currentScannedPayload.category = "Master Missing";
-            commitPayloadEntryToStaging(currentScannedPayload.qty);
-            setTimeout(function() { triggerLiveScanner(); }, 250);
-          }
-        }
-      }, function(err){
-        setLogStatus("Core lookup backend pipeline delay.", "error");
-      });
+        })
+        .withFailureHandler(function(err){ setLogStatus("Lookup error: " + err.message, "error"); })
+        .getProductDetailsWeb(parsedBarcode);
     }
 
     function closeDashboardPopupCard(actionType) {
-      if (actionType === 'cancel') {
-        $("dashboard-popup-backdrop").classList.remove("open");
-        return;
-      }
+      if (actionType === 'cancel') { $("dashboard-popup-backdrop").classList.remove("open"); return; }
       var userTypedQty = parseFloat($("pop-qty-input").value);
-      if (isNaN(userTypedQty) || userTypedQty <= 0) {
-        alert("Please enter a valid quantity amount!");
-        return;
-      }
+      if (isNaN(userTypedQty) || userTypedQty <= 0) { alert("Please enter a valid quantity amount!"); return; }
       commitPayloadEntryToStaging(userTypedQty);
       $("dashboard-popup-backdrop").classList.remove("open");
-
-      if (actionType === 'add_next') {
-        setTimeout(function() { triggerLiveScanner(); }, 200);
-      } else if (actionType === 'done') {
-        setLogStatus("Item added. Batch staging screen active.", "success");
-      }
+      if (actionType === 'add_next') setTimeout(function(){ triggerLiveScanner(); }, 200);
+      else if (actionType === 'done') setLogStatus("Item added. Batch staging screen active.", "success");
     }
 
     function commitPayloadEntryToStaging(quantityToLog) {
       var itemObject = {
         type: (currentActiveMode === "in") ? "PRODUCTION" : "DISPATCH",
-        barcode: currentScannedPayload.barcode,
-        category: currentScannedPayload.category,
-        product: currentScannedPayload.product,
-        qty: quantityToLog,
-        branch: (currentActiveMode === "out") ? selectedBranchName : ""
+        barcode: currentScannedPayload.barcode, category: currentScannedPayload.category, product: currentScannedPayload.product,
+        qty: quantityToLog, branch: (currentActiveMode === "out") ? selectedBranchName : ""
       };
       centralBatchCollection.push(itemObject);
       refreshHistoryLogDisplay();
       setLogStatus("Added into Workspace: " + itemObject.product, "success");
     }
 
-    /* ============== MANUAL ENTRY PANEL (NO BARCODE — CATEGORY WISE) ============== */
-
     function openManualEntryPanel() {
-      if (currentActiveMode === "out" && !selectedBranchName) {
-        alert("Please select a Branch (Ram Mandir / Vishrambagh / Miraj) before manual entry.");
-        return;
-      }
+      if (currentActiveMode === "out" && !selectedBranchName) { alert("Please select a Branch before manual entry."); return; }
       $("scan-box-wrapper").style.display = "none";
       $("manual-entry-btn").style.display = "none";
       $("manual-entry-panel").style.display = "flex";
-
       if (!manualCategoriesLoaded) loadManualCategories();
       else if (categoryLockActive) applyManualPresetCategory();
     }
@@ -642,34 +657,22 @@
     }
 
     function loadManualCategories() {
-      executeJsonpTransfer({ action: "getCategories" }, function(res){
+      google.script.run.withSuccessHandler(function(cats){
         var select = $("manual-category-select");
         select.innerHTML = '<option value="">Select a category...</option>';
-        if (res && res.success && res.data && res.data.length > 0) {
-          res.data.forEach(function(cat){
-            var opt = document.createElement("option");
-            opt.value = cat; opt.innerText = cat;
-            select.appendChild(opt);
-          });
+        if (cats && cats.length > 0) {
+          cats.forEach(function(cat){ var opt = document.createElement("option"); opt.value = cat; opt.innerText = cat; select.appendChild(opt); });
           manualCategoriesLoaded = true;
           if (categoryLockActive) applyManualPresetCategory();
-        } else {
-          select.innerHTML = '<option value="">No categories found</option>';
-        }
-      }, function(e){ setLogStatus("Could not load categories.", "error"); });
+        } else select.innerHTML = '<option value="">No categories found</option>';
+      }).withFailureHandler(function(e){ setLogStatus("Could not load categories.", "error"); }).getCategoriesWeb();
     }
 
-    // LOCKS the category picker to the value that came in via ?category=... in the URL, so
-    // someone opening a category-specific link can only ever enter stock for that one category —
-    // the dropdown itself is hidden (not just pre-selected), matching how branch links are
-    // locked on the Opening Stock Entry page. This re-applies every time the panel is opened,
-    // so the lock stays in effect for the whole session on this link, not just the first time.
     function applyManualPresetCategory() {
       if (!manualPresetCategory) return;
       var select = $("manual-category-select");
       var matched = Array.from(select.options).some(function(o){ return o.value === manualPresetCategory; });
       if (!matched) return;
-
       select.value = manualPresetCategory;
       select.disabled = true;
       select.style.display = "none";
@@ -680,30 +683,21 @@
 
     function loadManualItemsForCategory() {
       var category = $("manual-category-select").value;
-      if (!category) {
-        $("manual-items-grid").innerHTML = "Pick a category above to load its items.";
-        $("manual-summary-bar").style.display = "none";
-        return;
-      }
+      if (!category) { $("manual-items-grid").innerHTML = "Pick a category above to load its items."; $("manual-summary-bar").style.display = "none"; return; }
       $("manual-items-grid").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading items...</div>';
       setLogStatus("Loading items in " + category + "...", "");
 
-      executeJsonpTransfer({ action: "getProductsByCategory", category: category }, function(res){
-        if (res && res.success) {
-          renderManualItemsGrid(res.data || []);
-          $("manual-summary-bar").style.display = "flex";
-          updateManualSummary(res.data ? res.data.length : 0);
-          setLogStatus("Loaded " + (res.data ? res.data.length : 0) + " items in " + category + ".", "success");
-        } else { setLogStatus("Failed to load items.", "error"); }
-      }, function(e){ setLogStatus("Items connection timeout.", "error"); });
+      google.script.run.withSuccessHandler(function(items){
+        renderManualItemsGrid(items || []);
+        $("manual-summary-bar").style.display = "flex";
+        updateManualSummary(items ? items.length : 0);
+        setLogStatus("Loaded " + (items ? items.length : 0) + " items in " + category + ".", "success");
+      }).withFailureHandler(function(e){ setLogStatus("Items load failed.", "error"); }).getProductsByCategoryWeb(category);
     }
 
     function renderManualItemsGrid(items) {
       var box = $("manual-items-grid");
-      if (!items || items.length === 0) {
-        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No items in this category.</div>';
-        return;
-      }
+      if (!items || items.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No items in this category.</div>'; return; }
       var html = "";
       for (var i = 0; i < items.length; i++) {
         var it = items[i];
@@ -717,7 +711,7 @@
                      data-product="${it.name.replace(/"/g,'&quot;')}"
                      data-barcode="${it.barcode || ''}"
                      data-category="${(it.category || '').replace(/"/g,'&quot;')}"
-                     oninput="this.classList.toggle('touched', this.value !== ''); updateManualSummary();">
+                     oninput="syncManualItemToBatch(this);">
             </div>
           </div>`;
       }
@@ -726,8 +720,7 @@
 
     function filterManualVisibleItems(query) {
       var q = (query || "").trim().toLowerCase();
-      var cards = document.querySelectorAll("#manual-items-grid .manual-item-card");
-      cards.forEach(function(card){
+      document.querySelectorAll("#manual-items-grid .manual-item-card").forEach(function(card){
         var name = card.getAttribute("data-name") || "";
         card.style.display = (!q || name.indexOf(q) !== -1) ? "flex" : "none";
       });
@@ -742,217 +735,126 @@
     }
 
     function addManualItemsToBatch() {
-      if (currentActiveMode === "out" && !selectedBranchName) {
-        alert("Please select a Branch before adding dispatch items.");
-        return;
-      }
+      if (currentActiveMode === "out" && !selectedBranchName) { alert("Please select a Branch before adding dispatch items."); return; }
       var inputs = document.querySelectorAll("#manual-items-grid .manual-item-qty-input");
       var addedCount = 0;
       inputs.forEach(function(inp){
         if (inp.value === "") return;
         var qty = parseFloat(inp.value);
         if (isNaN(qty) || qty <= 0) return;
-
-        var itemObject = {
+        centralBatchCollection.push({
           type: (currentActiveMode === "in") ? "PRODUCTION" : "DISPATCH",
-          barcode: inp.getAttribute("data-barcode"),
-          category: inp.getAttribute("data-category"),
-          product: inp.getAttribute("data-product"),
-          qty: qty,
-          branch: (currentActiveMode === "out") ? selectedBranchName : ""
-        };
-        centralBatchCollection.push(itemObject);
+          barcode: inp.getAttribute("data-barcode"), category: inp.getAttribute("data-category"), product: inp.getAttribute("data-product"),
+          qty: qty, branch: (currentActiveMode === "out") ? selectedBranchName : ""
+        });
         addedCount++;
       });
-
-      if (addedCount === 0) {
-        setLogStatus("Enter at least one quantity before adding.", "error");
-        return;
-      }
-
+      if (addedCount === 0) { setLogStatus("Enter at least one quantity before adding.", "error"); return; }
       refreshHistoryLogDisplay();
       setLogStatus(addedCount + " item(s) added into Workspace from Manual Entry.", "success");
-
-      // Reset the grid's inputs so re-opening the same category starts fresh, then return to scan view.
       inputs.forEach(function(inp){ inp.value = ""; inp.classList.remove("touched"); });
       updateManualSummary();
       closeManualEntryPanel();
     }
 
     function submitEntireDeskBatch() {
-      if (centralBatchCollection.length === 0) {
-        setLogStatus("Staging batch history environment ledger is empty.", "error");
-        return;
-      }
+      if (centralBatchCollection.length === 0) { setLogStatus("Staging batch is empty.", "error"); return; }
       var confirmMsg = currentActiveMode === "in"
-        ? "Are you sure you want to push this total transaction batch array containing " + centralBatchCollection.length + " logged line items?\n\nStock will be auto increased (+) at Savali Factory for each item."
-        : "Are you sure you want to push this total transaction batch array containing " + centralBatchCollection.length + " logged line items?\n\nStock will be reduced (-) at Savali Factory immediately, and will show as PENDING for " + selectedBranchName + " until they confirm receipt on their Branch Dashboard.";
+        ? "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be increased (+) at Savali Factory for each item."
+        : "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be reduced (-) at Savali Factory immediately, and will show as PENDING for " + selectedBranchName + " until they confirm receipt on their Branch Dashboard.";
       if (!confirm(confirmMsg)) return;
 
-      setLogStatus("Uploading records payload package to Cloud Sheets server...", "");
-      var serializedBatch = JSON.stringify(centralBatchCollection);
-      var batchSnapshot = centralBatchCollection.slice(); // keep a copy for the challan preview, since we clear the batch right after
+      setLogStatus("Uploading batch...", "");
+      var batchSnapshot = centralBatchCollection.slice();
       var dispatchBranchSnapshot = selectedBranchName;
 
-      executeJsonpTransfer({ action: "saveBatch", batch: serializedBatch }, function(res){
+      google.script.run.withSuccessHandler(function(res){
         if (res && res.success) {
-          if (currentActiveMode === "out") {
-            // Show the challan preview instead of an alert — the reset/exit happens when the
-            // user closes that preview (see closeChallanPreview), so they see it before moving on.
-            showChallanPreview(batchSnapshot, dispatchBranchSnapshot);
-          } else {
-            alert("All entries pushed successfully! Stock updated.");
-            centralBatchCollection = [];
-            refreshHistoryLogDisplay();
-            exitDashboardScreen();
-          }
-        } else {
-          setLogStatus("Database server execution process breakdown occurred.", "error");
-        }
-      }, function(e){ setLogStatus("Cloud submission pipeline connection timeout.", "error"); });
+          if (currentActiveMode === "out") showChallanPreview(batchSnapshot, dispatchBranchSnapshot, res.challanNo || '');
+          else { alert("All entries pushed successfully! Stock updated."); centralBatchCollection = []; refreshHistoryLogDisplay(); exitDashboardScreen(); }
+        } else setLogStatus("Save failed: " + (res && res.error ? res.error : "unknown error"), "error");
+      }).withFailureHandler(function(e){ setLogStatus("Submission error: " + e.message, "error"); }).saveBatchTransactionsWeb(centralBatchCollection);
     }
 
-    /* ============== DISPATCH CHALLAN PREVIEW (inline HTML, shown before any PDF is made) ============== */
-    var pendingChallanItems = null;
-    var pendingChallanBranch = null;
+    var pendingChallanItems = null, pendingChallanBranch = null, pendingChallanNo = null;
 
     function buildChallanMetaStrings() {
       var now = new Date();
-      return {
-        dateStr: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-        timeStr: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-      };
+      return { dateStr: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), timeStr: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) };
     }
 
-    function showChallanPreview(items, branchName) {
-      pendingChallanItems = items;
-      pendingChallanBranch = branchName;
+    function showChallanPreview(items, branchName, challanNo) {
+      pendingChallanItems = items; pendingChallanBranch = branchName; pendingChallanNo = challanNo || '';
       var meta = buildChallanMetaStrings();
-
       var itemsHtml = "";
       items.forEach(function(it, idx){
-        itemsHtml += `
-          <div class="challan-item-row">
-            <span class="challan-col-num">${idx + 1}</span>
-            <span class="challan-col-item">${it.product}</span>
-            <span class="challan-col-cat">${it.category || '-'}</span>
-            <span class="challan-col-qty">x${it.qty}</span>
-          </div>`;
+        itemsHtml += `<div class="challan-item-row"><span class="challan-col-num">${idx + 1}</span><span class="challan-col-item">${it.product}</span><span class="challan-col-cat">${it.category || '-'}</span><span class="challan-col-qty">x${it.qty}</span></div>`;
       });
-
+      var challanNoLine = pendingChallanNo ? `<div class="challan-meta-row" style="margin-top:4px;"><span>Challan No: <b>${pendingChallanNo}</b></span></div>` : '';
       $("challan-preview-body").innerHTML = `
         <div class="challan-header">
           <div class="challan-brand">Raghuvir Sweets & Bakers</div>
           <div class="challan-title">Dispatch Challan</div>
-          <div class="challan-meta-row">
-            <span>From: <b>Savali Factory</b></span>
-            <span>To: <b>${branchName || '-'}</b></span>
-          </div>
-          <div class="challan-meta-row" style="margin-top:4px;">
-            <span>🕐 <b>${meta.dateStr}  ${meta.timeStr}</b></span>
-            <span>${items.length} item(s)</span>
-          </div>
+          ${challanNoLine}
+          <div class="challan-meta-row"><span>From: <b>Savali Factory</b></span><span>To: <b>${branchName || '-'}</b></span></div>
+          <div class="challan-meta-row" style="margin-top:4px;"><span>🕐 <b>${meta.dateStr}  ${meta.timeStr}</b></span><span>${items.length} item(s)</span></div>
         </div>
         <div class="challan-table">
-          <div class="challan-table-head">
-            <span class="challan-col-num">#</span>
-            <span class="challan-col-item">Item Name</span>
-            <span class="challan-col-cat">Category</span>
-            <span class="challan-col-qty">Qty</span>
-          </div>
+          <div class="challan-table-head"><span class="challan-col-num">#</span><span class="challan-col-item">Item Name</span><span class="challan-col-cat">Category</span><span class="challan-col-qty">Qty</span></div>
           ${itemsHtml}
         </div>
-        <div class="challan-footer">
-          <span>Total Items</span>
-          <span>${items.length}</span>
-        </div>
-        <p class="challan-note">This stock will appear as PENDING for ${branchName || 'the branch'} until receipt is confirmed on their Branch Dashboard.</p>
-      `;
-
+        <div class="challan-footer"><span>Total Items</span><span>${items.length}</span></div>
+        <p class="challan-note">This stock will appear as PENDING for ${branchName || 'the branch'} until receipt is confirmed on their Branch Dashboard.</p>`;
       $("challan-preview-backdrop").classList.add("open");
     }
 
-    function downloadChallanPDF() {
-      if (!pendingChallanItems) return;
-      generateDispatchChallanPDF(pendingChallanItems, pendingChallanBranch);
-    }
+    function downloadChallanPDF() { if (pendingChallanItems) generateDispatchChallanPDF(pendingChallanItems, pendingChallanBranch, pendingChallanNo); }
 
     function closeChallanPreview() {
       $("challan-preview-backdrop").classList.remove("open");
-      pendingChallanItems = null;
-      pendingChallanBranch = null;
-      centralBatchCollection = [];
-      refreshHistoryLogDisplay();
+      pendingChallanItems = null; pendingChallanBranch = null; pendingChallanNo = null;
+      centralBatchCollection = []; refreshHistoryLogDisplay();
       exitDashboardScreen();
     }
 
-    /* ============== DISPATCH CHALLAN PDF (built only when "Download as PDF" is tapped) ============== */
-    function generateDispatchChallanPDF(items, branchName) {
+    function generateDispatchChallanPDF(items, branchName, challanNo) {
       try {
         var jsPDFLib = window.jspdf && window.jspdf.jsPDF;
         if (!jsPDFLib) { console.error("jsPDF not loaded"); return; }
         var doc = new jsPDFLib({ unit: "pt", format: "a4" });
         var pageWidth = doc.internal.pageSize.getWidth();
-        var marginX = 40;
-        var y = 50;
+        var marginX = 40, y = 50;
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(18);
         doc.text("Raghuvir Sweets & Bakers", pageWidth / 2, y, { align: "center" });
-
-        y += 22;
-        doc.setFontSize(13);
-        doc.setTextColor(166, 60, 25);
+        y += 22; doc.setFontSize(13); doc.setTextColor(166, 60, 25);
         doc.text("DISPATCH CHALLAN", pageWidth / 2, y, { align: "center" });
         doc.setTextColor(0, 0, 0);
-
-        y += 26;
-        doc.setDrawColor(220, 210, 191);
-        doc.line(marginX, y, pageWidth - marginX, y);
+        y += 26; doc.setDrawColor(220, 210, 191); doc.line(marginX, y, pageWidth - marginX, y);
 
         var meta = buildChallanMetaStrings();
+        if (challanNo) {
+          y += 20; doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+          doc.text("Challan No:", marginX, y); doc.setFont("helvetica", "normal"); doc.text(String(challanNo), marginX + 100, y);
+        }
+        y += 24; doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+        doc.text("Dispatched To:", marginX, y); doc.setFont("helvetica", "normal"); doc.text(branchName || "-", marginX + 100, y);
+        doc.setFont("helvetica", "bold"); doc.text("From:", pageWidth - marginX - 160, y); doc.setFont("helvetica", "normal"); doc.text("Savali Factory", pageWidth - marginX - 110, y);
 
-        y += 24;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.text("Dispatched To:", marginX, y);
-        doc.setFont("helvetica", "normal");
-        doc.text(branchName || "-", marginX + 100, y);
+        y += 18; doc.setFont("helvetica", "bold"); doc.text("Date & Time:", marginX, y); doc.setFont("helvetica", "normal"); doc.text(meta.dateStr + "  " + meta.timeStr, marginX + 100, y);
+        y += 22; doc.line(marginX, y, pageWidth - marginX, y);
 
-        doc.setFont("helvetica", "bold");
-        doc.text("From:", pageWidth - marginX - 160, y);
-        doc.setFont("helvetica", "normal");
-        doc.text("Savali Factory", pageWidth - marginX - 110, y);
-
-        y += 18;
-        doc.setFont("helvetica", "bold");
-        doc.text("Date & Time:", marginX, y);
-        doc.setFont("helvetica", "normal");
-        doc.text(meta.dateStr + "  " + meta.timeStr, marginX + 100, y);
-
-        y += 22;
-        doc.line(marginX, y, pageWidth - marginX, y);
-
-        // Table header
         y += 20;
         var col1 = marginX, col2 = marginX + 40, col3 = marginX + 300, col4 = pageWidth - marginX - 60;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text("#", col1, y);
-        doc.text("Item Name", col2, y);
-        doc.text("Category", col3, y);
-        doc.text("Qty", col4, y);
-        y += 6;
-        doc.line(marginX, y, pageWidth - marginX, y);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+        doc.text("#", col1, y); doc.text("Item Name", col2, y); doc.text("Category", col3, y); doc.text("Qty", col4, y);
+        y += 6; doc.line(marginX, y, pageWidth - marginX, y);
 
         doc.setFont("helvetica", "normal");
         var pageHeight = doc.internal.pageSize.getHeight();
         for (var i = 0; i < items.length; i++) {
           y += 18;
-          if (y > pageHeight - 80) {
-            doc.addPage();
-            y = 50;
-          }
+          if (y > pageHeight - 80) { doc.addPage(); y = 50; }
           var it = items[i];
           doc.text(String(i + 1), col1, y);
           doc.text(String(it.product || ""), col2, y, { maxWidth: 250 });
@@ -960,28 +862,19 @@
           doc.text(String(it.qty), col4, y);
         }
 
-        y += 14;
-        doc.line(marginX, y, pageWidth - marginX, y);
-        y += 20;
-        doc.setFont("helvetica", "bold");
-        doc.text("Total Items: " + items.length, marginX, y);
-
-        y += 40;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(120, 110, 100);
+        y += 14; doc.line(marginX, y, pageWidth - marginX, y);
+        y += 20; doc.setFont("helvetica", "bold"); doc.text("Total Items: " + items.length, marginX, y);
+        y += 40; doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 110, 100);
         doc.text("This stock will appear as PENDING for " + (branchName || "the branch") + " until receipt is confirmed on the Branch Dashboard.", marginX, y);
 
-        var fileName = "Dispatch_Challan_" + (branchName || "Branch").replace(/\s+/g, "_") + "_" + Date.now() + ".pdf";
+        var fileName = "Dispatch_Challan_" + (challanNo || Date.now()) + "_" + (branchName || "Branch").replace(/\s+/g, "_") + ".pdf";
         doc.save(fileName);
-      } catch (err) {
-        console.error("PDF generation failed:", err);
-      }
+      } catch (err) { console.error("PDF generation failed:", err); }
     }
 
     function setLogStatus(msg, classification) {
       var bar = $("dashboard-status-log");
-      if(!bar) return;
+      if (!bar) return;
       bar.innerText = msg;
       bar.className = "status-msg-bar " + classification;
     }
