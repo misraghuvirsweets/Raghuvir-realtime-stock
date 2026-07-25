@@ -169,7 +169,6 @@
 
     <div class="top-tab-row">
       <button class="top-tab-btn active" id="top-tab-verify" type="button" onclick="switchTopTab('verify')">Verification</button>
-      <button class="top-tab-btn" id="top-tab-stock" type="button" onclick="switchTopTab('stock')">Stock</button>
       <button class="top-tab-btn" id="top-tab-sales" type="button" onclick="switchTopTab('sales')">Sales (POS)</button>
       <button class="top-tab-btn" id="top-tab-godown" type="button" onclick="switchTopTab('godown')">Godown</button>
       <button class="top-tab-btn" id="top-tab-records" type="button" onclick="switchTopTab('records')">Records</button>
@@ -181,7 +180,7 @@
     <div class="panel" id="view-verify">
       <div class="panel-head">✅ Daily Closing Stock Verification</div>
       <div class="panel-body">
-        <p style="font-size:12px; color:var(--text-soft); margin:0;">Expected Closing = Opening Stock (yesterday's closing) + Dispatch Received (today) − Sales Sold (today), compared against the Actual Closing your branch staff enter on the <b>Ram Mandir / Vishrambagh</b> sheet tabs. This Actual Closing is also what powers the Stock tab's "Opening Stock" figure — there's no separate opening-stock entry step anymore.</p>
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Expected Closing = Opening Stock (yesterday's closing) + Dispatch Received (today) − Sales Sold (today), compared against the Actual Closing your branch staff enter on the <b>Ram Mandir / Vishrambagh</b> sheet tabs.</p>
         <div class="filter-row">
           <select id="v-branchSelect" class="filter-select"><option value="ALL">All Branches</option></select>
           <input type="date" id="v-dateSelect" class="filter-input">
@@ -195,8 +194,12 @@
         <div class="table-wrap">
           <table class="verify-table" id="v-dataTable">
             <thead><tr>
-              <th>Branch</th><th>Item</th><th>Opening</th><th>Dispatch</th><th>Sales</th>
-              <th>Expected</th><th>Actual</th><th>Variance</th><th>Status</th>
+              <th>Branch</th><th>Item</th>
+              <th>Opening Stock<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of Previous Date)</span></th>
+              <th>Dispatch</th><th>Sales</th>
+              <th>Expected<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">Closing</span></th>
+              <th>Actual Closing<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of This Date)</span></th>
+              <th>Variance</th><th>Status</th>
             </tr></thead>
             <tbody id="v-tableBody"><tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
           </table>
@@ -205,41 +208,6 @@
     </div>
 
     <!-- =============== STOCK DASHBOARD =============== -->
-    <div class="panel" id="view-stock" hidden>
-      <div class="panel-head">📊 Opening + Stock In − Sales/Dispatched = Current</div>
-      <div class="panel-body">
-        <p style="font-size:12px; color:var(--text-soft); margin:0;">Branch "Opening" and "Current" come straight from the Actual Closing Stock your staff enter on the branch tabs (Verification tab). If today's closing hasn't been entered yet, "Current" falls back to Opening + Dispatch Received − Sales.</p>
-        <p style="font-size:12px; color:var(--text-soft); margin:0;">Dispatched stock only counts toward a branch once that branch confirms receipt on their <a href="javascript:void(0)" onclick="switchTopTab('links')" style="color:var(--navy); font-weight:700;">Branch Dashboard</a> (see the Links tab).</p>
-        <div class="filter-row">
-          <select id="dash-location-filter" class="filter-select">
-            <option value="All">All Locations</option><option value="Savali Factory">Savali Factory</option>
-            <option value="Ram Mandir">Ram Mandir</option><option value="Vishrambagh">Vishrambagh</option>
-          </select>
-          <div class="period-toggle-row" style="flex:1 1 200px;">
-            <button class="period-toggle-btn active" id="period-btn-day" type="button" onclick="setPeriodType('day')">Day</button>
-            <button class="period-toggle-btn" id="period-btn-month" type="button" onclick="setPeriodType('month')">Month</button>
-          </div>
-        </div>
-        <div class="filter-row">
-          <input id="dash-date-input" class="filter-input" type="date">
-          <input id="dash-month-input" class="filter-input" type="month" style="display:none;">
-          <button class="master-btn" type="button" style="flex:1 1 130px;" onclick="setDateToYesterday()">📅 Yesterday</button>
-          <input id="dash-search-input" class="filter-input search-input" type="text" placeholder="Filter by product or category...">
-        </div>
-        <button class="master-btn" type="button" onclick="loadStockDashboard()">🔄 Load Dashboard</button>
-
-        <label class="history-section-label">All Branches — Real-Time Overview</label>
-        <div id="branch-overview-strip" class="branch-overview-strip"></div>
-
-        <label class="history-section-label">Item-Wise Detail</label>
-        <div id="dashboard-results-list" class="scroll-box grid-box">Choose filters above and tap "Load Dashboard".</div>
-
-        <div id="dashboard-totals-bar" class="totals-bar" style="display:none;">
-          <span>Total Stock Value (Sale Rate)</span><span id="dashboard-total-value">₹0</span>
-        </div>
-      </div>
-    </div>
-
     <!-- =============== SALES DATA (POS) =============== -->
     <div class="panel" id="view-sales" hidden>
       <div class="panel-head">🛍️ Sales Data (from POS export)</div>
@@ -439,14 +407,12 @@
     })();
     function $(id){ return document.getElementById(id); }
     var BRANCHES = ['Ram Mandir', 'Vishrambagh'];
-    var LOCATION_ORDER = ["Savali Factory"].concat(BRANCHES);
-    var BRANCH_ORDER = BRANCHES;
 
     function setStatus(msg, cls) { var bar = $("global-status"); bar.innerText = msg; bar.className = "status-msg-bar " + (cls || ""); }
 
     var categoryLinksLoaded = false;
     function switchTopTab(tab) {
-      ["verify","stock","sales","godown","records","links","admin"].forEach(function(t){
+      ["verify","sales","godown","records","links","admin"].forEach(function(t){
         $("top-tab-" + t).classList.toggle("active", t === tab);
         $("view-" + t).hidden = (t !== tab);
       });
@@ -537,90 +503,6 @@
     $("v-dateSelect").addEventListener('change', function(e){ loadVerifyData(e.target.value); });
     $("v-branchSelect").addEventListener('change', renderVerify);
     $("v-statusSelect").addEventListener('change', renderVerify);
-
-    /* ======================= STOCK DASHBOARD TAB ======================= */
-    var currentPeriodType = 'day';
-    function setPeriodType(type) {
-      currentPeriodType = type;
-      $("period-btn-day").classList.toggle("active", type === 'day');
-      $("period-btn-month").classList.toggle("active", type === 'month');
-      $("dash-date-input").style.display = type === 'day' ? "block" : "none";
-      $("dash-month-input").style.display = type === 'month' ? "block" : "none";
-    }
-
-    function setDateToYesterday() {
-      var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-      $("dash-date-input").value = yesterday.toISOString().slice(0, 10);
-      loadStockDashboard();
-    }
-
-    function loadStockDashboard() {
-      var location = $("dash-location-filter").value;
-      var periodValue = currentPeriodType === 'day' ? $("dash-date-input").value : $("dash-month-input").value;
-      var search = $("dash-search-input").value;
-      if (!periodValue) { setStatus("Please pick a date/month first.", "error"); return; }
-
-      $("dashboard-results-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Calculating Opening + In - Sales...</div>';
-      setStatus("Computing stock dashboard...", "");
-
-      google.script.run
-        .withSuccessHandler(function(data){ renderStockDashboard(data, location === "All"); setStatus("Dashboard loaded — " + data.rows.length + " rows.", "success"); })
-        .withFailureHandler(function(e){ setStatus("Dashboard error: " + e.message, "error"); })
-        .getStockDashboardWeb({ location: location, periodType: currentPeriodType, periodValue: periodValue, search: search });
-    }
-
-    function renderBranchOverviewStrip(rows) {
-      var box = $("branch-overview-strip");
-      var byLocation = {};
-      LOCATION_ORDER.forEach(function(loc){ byLocation[loc] = { value: 0, items: 0 }; });
-      rows.forEach(function(r){ if (!byLocation[r.location]) byLocation[r.location] = { value: 0, items: 0 }; byLocation[r.location].value += r.value; byLocation[r.location].items += 1; });
-      var html = "";
-      LOCATION_ORDER.forEach(function(loc){
-        var v = byLocation[loc]; var isFactory = loc === "Savali Factory";
-        html += `<div class="branch-overview-card${isFactory ? ' factory' : ''}"><div class="boc-name">${loc}</div><div class="boc-value">₹${Math.round(v.value).toLocaleString('en-IN')}</div><div class="boc-meta">${v.items} item${v.items !== 1 ? 's' : ''} with stock</div></div>`;
-      });
-      box.innerHTML = html;
-    }
-
-    function renderStockDashboard(data, showOverview) {
-      var box = $("dashboard-results-list");
-      var rows = data.rows || [];
-      var overviewBox = $("branch-overview-strip");
-      if (showOverview) { overviewBox.style.display = "grid"; renderBranchOverviewStrip(rows); } else overviewBox.style.display = "none";
-
-      if (rows.length === 0) {
-        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No matching stock activity for this period.</div>';
-        $("dashboard-totals-bar").style.display = "none";
-        return;
-      }
-
-      var byLocation = {};
-      rows.forEach(function(r){ (byLocation[r.location] = byLocation[r.location] || []).push(r); });
-      var locationsPresent = LOCATION_ORDER.filter(function(l){ return byLocation[l]; }).concat(Object.keys(byLocation).filter(function(l){ return LOCATION_ORDER.indexOf(l) === -1; }));
-
-      var html = "";
-      locationsPresent.forEach(function(loc){
-        var locRows = byLocation[loc];
-        var locValue = locRows.reduce(function(sum, r){ return sum + r.value; }, 0);
-        html += `<div class="location-group-header"><span>${loc}</span><span class="lgh-value">₹${locValue.toLocaleString('en-IN')} (${locRows.length} item${locRows.length > 1 ? 's' : ''})</span></div>`;
-        locRows.forEach(function(r){
-          var outLabel = (r.location === "Savali Factory") ? "Dispatched Out" : "Sales";
-          var flag = !r.hasMasterRecord ? '<div class="dash-row-flag">⚠ Not in Master (rate unknown)</div>' : '';
-          var openingFlag = (r.location !== "Savali Factory" && !r.hasOpeningData) ? '<div class="dash-row-flag">⚠ No closing stock entered for the opening anchor date</div>' : '';
-          var estFlag = (r.location !== "Savali Factory" && !r.hasActualClosing) ? '<div class="dash-row-info">ℹ Current stock is an estimate — today\'s closing hasn\'t been entered yet</div>' : '';
-          html += `
-            <div class="dash-row">
-              <div class="dash-row-top"><span class="dash-row-name">${r.product}</span><span class="dash-row-loc">${r.location}</span></div>
-              <div class="dash-row-figs"><span>Opening: <b>${r.opening}</b></span><span>Stock In: <b>${r.stockIn}</b></span><span>${outLabel}: <b>${r.out}</b></span><span>Current: <b>${r.current} ${r.unit}</b></span></div>
-              <div class="dash-row-value">Value: ₹${r.value.toLocaleString('en-IN')} (@ ₹${r.rate}/${r.unit})</div>
-              ${flag}${openingFlag}${estFlag}
-            </div>`;
-        });
-      });
-      box.innerHTML = html;
-      $("dashboard-totals-bar").style.display = "flex";
-      $("dashboard-total-value").innerText = "₹" + (data.totalValue || 0).toLocaleString('en-IN');
-    }
 
     /* ======================= SALES (POS) TAB ======================= */
     function loadSalesMonths() {
@@ -880,12 +762,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', function () {
-      var todayStr = new Date().toISOString().slice(0,10);
-      var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-      $("dash-date-input").value = yesterday.toISOString().slice(0,10);
-      $("dash-month-input").value = todayStr.slice(0,7);
       initVerify();
-      loadStockDashboard();
       loadDiagnostics();
       loadTriggerStatus();
     });
