@@ -470,7 +470,14 @@
     }
 
     function deleteRowEntryItem(index) {
+      var removed = centralBatchCollection[index];
       centralBatchCollection.splice(index, 1);
+      // If this entry came from the manual-entry grid (not a scan), clear its input field too
+      // so it doesn't still show a stale quantity for an item no longer in the batch.
+      if (removed && removed.barcode !== undefined) {
+        var matchInput = document.querySelector('#manual-items-grid .manual-item-qty-input[data-barcode="' + (removed.barcode || '').replace(/"/g, '\\"') + '"][data-product="' + (removed.product || '').replace(/"/g, '\\"') + '"]');
+        if (matchInput) { matchInput.value = ""; matchInput.classList.remove("touched"); }
+      }
       refreshHistoryLogDisplay();
       setLogStatus("Selected row entry item removed successfully.", "success");
     }
@@ -734,27 +741,37 @@
       $("manual-summary-touched").innerText = touched + " entered";
     }
 
-    function addManualItemsToBatch() {
-      if (currentActiveMode === "out" && !selectedBranchName) { alert("Please select a Branch before adding dispatch items."); return; }
-      var inputs = document.querySelectorAll("#manual-items-grid .manual-item-qty-input");
-      var addedCount = 0;
-      inputs.forEach(function(inp){
-        if (inp.value === "") return;
-        var qty = parseFloat(inp.value);
-        if (isNaN(qty) || qty <= 0) return;
-        centralBatchCollection.push({
-          type: (currentActiveMode === "in") ? "PRODUCTION" : "DISPATCH",
-          barcode: inp.getAttribute("data-barcode"), category: inp.getAttribute("data-category"), product: inp.getAttribute("data-product"),
+    // Called on every keystroke in a manual-entry qty input. Keeps that item's entry in
+    // centralBatchCollection in sync with the input's current value: adds it if a valid qty
+    // is typed, updates it if the qty changes, and removes it again if the field is cleared
+    // back to empty/zero. Matched by barcode+product+type so re-typing the same item updates
+    // its one entry instead of creating duplicates.
+    function syncManualItemToBatch(inputEl) {
+      inputEl.classList.toggle("touched", inputEl.value !== "");
+      var barcode = inputEl.getAttribute("data-barcode");
+      var product = inputEl.getAttribute("data-product");
+      var category = inputEl.getAttribute("data-category");
+      var type = (currentActiveMode === "in") ? "PRODUCTION" : "DISPATCH";
+      var qty = parseFloat(inputEl.value);
+
+      var existingIndex = -1;
+      for (var i = 0; i < centralBatchCollection.length; i++) {
+        var e = centralBatchCollection[i];
+        if (e.type === type && e.barcode === barcode && e.product === product) { existingIndex = i; break; }
+      }
+
+      if (isNaN(qty) || qty <= 0) {
+        if (existingIndex !== -1) centralBatchCollection.splice(existingIndex, 1);
+      } else {
+        var entry = {
+          type: type, barcode: barcode, category: category, product: product,
           qty: qty, branch: (currentActiveMode === "out") ? selectedBranchName : ""
-        });
-        addedCount++;
-      });
-      if (addedCount === 0) { setLogStatus("Enter at least one quantity before adding.", "error"); return; }
+        };
+        if (existingIndex !== -1) centralBatchCollection[existingIndex] = entry;
+        else centralBatchCollection.push(entry);
+      }
       refreshHistoryLogDisplay();
-      setLogStatus(addedCount + " item(s) added into Workspace from Manual Entry.", "success");
-      inputs.forEach(function(inp){ inp.value = ""; inp.classList.remove("touched"); });
       updateManualSummary();
-      closeManualEntryPanel();
     }
 
     function submitEntireDeskBatch() {
