@@ -43,9 +43,6 @@
       font-size:13px; font-family:inherit; background:#fff; color:var(--text); outline:none;
     }
     .filter-row input[type=date]{ flex:1 1 160px; padding:10px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px; }
-    .period-toggle-row{ display:flex; gap:8px; }
-    .period-toggle-btn{ flex:1; padding:9px 4px; border-radius:8px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; border:2px solid var(--navy); background:#fff; color:var(--navy); }
-    .period-toggle-btn.active{ background:var(--navy); color:#fff; }
     .search-input{ width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; background:#fff; color:var(--text); outline:none; }
 
     .master-btn { width:100%; padding:14px; border:none; border-radius:10px; font-size:14.5px; font-weight:700; font-family:inherit; color:#fff; cursor:pointer; background:var(--navy); box-shadow:0 4px 12px rgba(0,0,0,0.08); }
@@ -74,39 +71,6 @@
     .dash-row-value{ font-weight:700; color:var(--gold); font-size:13px; }
     .dash-row-flag{ font-size:11px; color:var(--terracotta); font-weight:700; }
     .dash-row-info{ font-size:11px; color:var(--navy); font-weight:600; }
-
-    .branch-overview-strip{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
-    @media (min-width:640px){ .branch-overview-strip{ grid-template-columns:repeat(4,1fr); } }
-    .branch-overview-card{ background:var(--navy); color:#fff; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; }
-    .branch-overview-card.factory{ background:var(--green); }
-    .branch-overview-card .boc-name{ font-family:'Fraunces',serif; font-size:13.5px; font-weight:600; }
-    .branch-overview-card .boc-value{ font-size:17px; font-weight:700; }
-    .branch-overview-card .boc-meta{ font-size:11px; opacity:0.85; }
-
-    .location-group-header{ grid-column:1/-1; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); background:var(--navy-soft); padding:8px 12px; border-radius:8px; margin-top:6px; display:flex; justify-content:space-between; align-items:center; }
-    .location-group-header:first-child{ margin-top:0; }
-    .location-group-header .lgh-value{ font-weight:700; color:var(--gold); font-size:12.5px; }
-
-    .totals-bar{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; background:var(--gold-soft); border-radius:10px; padding:12px 14px; font-size:13.5px; font-weight:700; color:var(--gold); }
-
-    .val-item-row{ display:flex; flex-direction:column; gap:5px; font-size:13px; padding:11px 0; border-bottom:1px dashed var(--border); }
-    .val-item-row:last-child{ border-bottom:none; }
-    .val-item-top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
-    .val-item-name{ font-weight:700; color:var(--text); font-size:14px; }
-    .val-item-loc{ font-size:10.5px; color:var(--navy); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--navy-soft); padding:2px 7px; border-radius:6px; white-space:nowrap; }
-    .val-item-figs{ display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--text-soft); }
-    .val-item-figs b{ color:var(--text); }
-    .val-item-value{ font-weight:700; color:var(--gold); font-size:13px; }
-    .grand-total-card{ background:var(--navy); color:#fff; border-radius:14px; padding:16px; text-align:center; }
-    .grand-total-card .label{ font-size:12px; opacity:0.8; text-transform:uppercase; letter-spacing:0.05em; }
-    .grand-total-card .value{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; margin-top:4px; }
-
-    .sales-loc-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px dashed var(--border); font-size:13.5px; gap:8px; }
-    .sales-loc-row:last-child{ border-bottom:none; }
-    .sales-loc-row b{ color:var(--gold); }
-    .top-product-row{ display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px dashed var(--border); font-size:13px; gap:8px; }
-    .top-product-row:last-child{ border-bottom:none; }
-    .top-product-rank{ color:var(--text-soft); font-size:11px; margin-right:6px; }
 
     .stock-row{ cursor:pointer; }
     .stock-row:active{ opacity:0.7; }
@@ -137,15 +101,13 @@
     .diag-line{ font-size:12px; color:var(--text-soft); line-height:1.7; }
     .diag-line b{ color:var(--navy); }
 
-    @media (min-width:980px){ .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; } }
-
-    /* ---- Verification tab (formula banner / status pills / table) ---- */
+    /* ---- pivot tables (Dispatch / Production / Sales) + Closing Stock table ---- */
     .formula-banner{ padding:12px 14px; background:#fff8f0; border:1px dashed var(--gold); border-radius:8px; font-size:13px; color:#5a3a1a; font-weight:600; }
     .summary{ display:flex; flex-wrap:wrap; gap:10px; }
     .card{ flex:1; min-width:110px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 14px; text-align:center; }
     .card .num{ font-size:22px; font-weight:700; }
     .card .lbl{ font-size:11px; color:#777; margin-top:2px; }
-    table.verify-table{ width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; font-size:13px; min-width:760px; }
+    table.verify-table{ width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; font-size:13px; min-width:640px; }
     table.verify-table th, table.verify-table td{ padding:9px 10px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
     table.verify-table th{ background:#faf5f0; font-size:11px; text-transform:uppercase; letter-spacing:.3px; color:#666; }
     tr.mismatch{ background:#fdecea; }
@@ -154,43 +116,70 @@
     .status-OK{ background:#eafaf1; color:var(--green); }
     .status-MISMATCH{ background:#fdecea; color:var(--terracotta); }
     .status-No-Closing-Entry,.status-No-Opening-Data{ background:#eee; color:#7f8c8d; }
-    .status-REORDER{ background:#fdecea; color:var(--terracotta); }
-    .status-LOW{ background:#fff4e0; color:#b8720a; }
     .status-Unknown{ background:#eee; color:#7f8c8d; }
     .table-wrap{ overflow-x:auto; }
+    #global-filter-bar{ margin-bottom:14px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <h1>Raghuvir Sweets & Bakers</h1>
-      <p>Admin Dashboard — Verification, Live Stock &amp; Sales</p>
+      <p>Admin Dashboard — real-time, no nightly batch jobs</p>
     </header>
 
     <div class="top-tab-row">
-      <button class="top-tab-btn active" id="top-tab-verify" type="button" onclick="switchTopTab('verify')">Verification</button>
+      <button class="top-tab-btn active" id="top-tab-dispatch" type="button" onclick="switchTopTab('dispatch')">Dispatch</button>
+      <button class="top-tab-btn" id="top-tab-production" type="button" onclick="switchTopTab('production')">Production</button>
       <button class="top-tab-btn" id="top-tab-sales" type="button" onclick="switchTopTab('sales')">Sales (POS)</button>
-      <button class="top-tab-btn" id="top-tab-godown" type="button" onclick="switchTopTab('godown')">Godown</button>
-      <button class="top-tab-btn" id="top-tab-records" type="button" onclick="switchTopTab('records')">Records</button>
-      <button class="top-tab-btn" id="top-tab-links" type="button" onclick="switchTopTab('links')">Links</button>
-      <button class="top-tab-btn" id="top-tab-admin" type="button" onclick="switchTopTab('admin')">Admin</button>
+      <button class="top-tab-btn" id="top-tab-closing" type="button" onclick="switchTopTab('closing')">Closing Stock</button>
+      <button class="top-tab-btn" id="top-tab-mis" type="button" onclick="switchTopTab('mis')">MIS Dashboard</button>
     </div>
 
-    <!-- =============== VERIFICATION (Bakery closing-stock pipeline) =============== -->
-    <div class="panel" id="view-verify">
-      <div class="panel-head">✅ Daily Closing Stock Verification</div>
+    <!-- Shared filter bar — drives Dispatch / Production / Sales / Closing Stock. Hidden on MIS Dashboard. -->
+    <div class="filter-row" id="global-filter-bar">
+      <select id="g-branchFilter" class="filter-select"><option value="All">All Branches</option></select>
+      <select id="g-categoryFilter" class="filter-select"><option value="All">All Categories</option></select>
+      <input type="date" id="g-dateFilter" class="filter-input">
+      <button class="master-btn" type="button" style="flex:1 1 130px;" onclick="reloadActiveDataTab()">🔄 Load</button>
+    </div>
+
+    <!-- =============== DISPATCH (item x branch, pivoted) =============== -->
+    <div class="panel" id="view-dispatch">
+      <div class="panel-head">🚚 Dispatch — Item Wise, By Branch</div>
       <div class="panel-body">
-        <p style="font-size:12px; color:var(--text-soft); margin:0;">Expected Closing = Opening Stock (yesterday's closing) + Dispatch Received (today) − Sales Sold (today), compared against the Actual Closing your branch staff enter on the <b>Ram Mandir / Vishrambagh</b> sheet tabs.</p>
-        <div class="filter-row">
-          <select id="v-branchSelect" class="filter-select"><option value="ALL">All Branches</option></select>
-          <input type="date" id="v-dateSelect" class="filter-input">
-          <select id="v-statusSelect" class="filter-select">
-            <option value="ALL">All</option><option value="OK">OK</option><option value="MISMATCH">Mismatch</option>
-            <option value="No Closing Entry">No Closing Entry</option><option value="No Opening Data">No Opening Data</option>
-          </select>
-          <select id="v-categorySelect" class="filter-select"><option value="ALL">All Categories</option></select>
-        </div>
-        <button class="master-btn" type="button" style="width:100%;" onclick="regenerateVerifyForDate()" title="Force-recompute this date from scratch (use if figures look stale or wrong)">↻ Regenerate This Date</button>
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Every dispatch recorded on the selected date, one row per item, with quantity shown per branch it went to. Computed live from Inventory_Log — always current.</p>
+        <div id="dispatch-status" class="status-msg-bar"></div>
+        <div id="dispatch-table-box">Pick filters above and tap "Load".</div>
+      </div>
+    </div>
+
+    <!-- =============== PRODUCTION (item x location, pivoted — always Savali Factory) =============== -->
+    <div class="panel" id="view-production" hidden>
+      <div class="panel-head">🏭 Production — Item Wise (Savali Factory)</div>
+      <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Production only ever happens at Savali Factory, so there's nothing to pick for branch here — every row is factory output for the selected date.</p>
+        <div id="production-status" class="status-msg-bar"></div>
+        <div id="production-table-box">Pick filters above and tap "Load".</div>
+      </div>
+    </div>
+
+    <!-- =============== SALES (POS), item x branch, pivoted =============== -->
+    <div class="panel" id="view-sales" hidden>
+      <div class="panel-head">🛍️ Sales — Item Wise, By Branch (from POS export)</div>
+      <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Sales pulled directly from the POS export sheet for the selected date, pivoted by branch.</p>
+        <div id="sales-status" class="status-msg-bar"></div>
+        <div id="sales-table-box">Pick filters above and tap "Load".</div>
+      </div>
+    </div>
+
+    <!-- =============== CLOSING STOCK (real-time — was "Verification") =============== -->
+    <div class="panel" id="view-closing" hidden>
+      <div class="panel-head">✅ Closing Stock — Actual vs System-Generated</div>
+      <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">System-Generated Closing = Opening Stock (previous date's closing) + Dispatch Received (this date) − Sales Sold (this date), compared against the Actual Closing your branch staff enter on the <b>Ram Mandir / Vishrambagh</b> sheet tabs. Computed fresh every time you load this tab — never a stale cached figure.</p>
+        <button class="master-btn" type="button" style="width:100%;" onclick="regenerateVerifyForDate()" title="Force-recompute this date from scratch">↻ Recompute This Date</button>
         <div class="formula-banner" id="v-formulaBanner"></div>
         <div class="summary" id="v-summary"></div>
         <div class="table-wrap">
@@ -199,65 +188,57 @@
               <th>Branch</th><th>Item</th><th>Category</th>
               <th>Opening Stock<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of Previous Date)</span></th>
               <th>Dispatch</th><th>Sales</th>
-              <th>Expected<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">Closing</span></th>
+              <th>System-Generated<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">Closing</span></th>
               <th>Actual Closing<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of This Date)</span></th>
               <th>Variance</th><th>Status</th>
             </tr></thead>
-            <tbody id="v-tableBody"><tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
+            <tbody id="v-tableBody"><tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- =============== STOCK DASHBOARD =============== -->
-    <!-- =============== SALES DATA (POS) =============== -->
-    <div class="panel" id="view-sales" hidden>
-      <div class="panel-head">🛍️ Sales Data (from POS export)</div>
-      <div class="panel-body">
-        <div class="filter-row">
-          <select id="sales-month-filter" class="filter-select"><option value="">Loading months...</option></select>
-          <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadSalesSummary()">🔄 Load Sales Summary</button>
-        </div>
-        <div class="two-col">
-          <div><label class="history-section-label">By Location</label><div id="sales-by-location" class="scroll-box" style="max-height:260px;">Pick a month and tap "Load Sales Summary".</div></div>
-          <div><label class="history-section-label">Top 50 Products (by sales value)</label><div id="sales-top-products" class="scroll-box" style="max-height:400px;"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- =============== GODOWN (Savali Factory quick list) =============== -->
-    <div class="panel" id="view-godown" hidden>
-      <div class="panel-head">🏭 Godown Stock (Savali Factory — Master List)</div>
-      <div class="panel-body" id="godown-list-view">
-        <p style="font-size:12px; color:var(--text-soft); margin:0;">Shows current cumulative stock (all-time Production − Dispatch) by default. Pick a date and tap "View" to see what stock looked like at the end of that day instead.</p>
-        <div class="filter-row">
-          <select id="godown-category-filter" class="filter-select"><option value="All">All Categories</option></select>
-          <input id="godown-asof-date" class="filter-input" type="date">
-        </div>
-        <div class="filter-row">
-          <input id="godown-search-input" class="filter-input search-input" type="text" placeholder="Search item name or code..." oninput="filterGodownList(this.value)">
-          <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadGodownList()">🔄 Refresh Stock List</button>
-        </div>
-        <button class="manual-secondary-btn-inline" type="button" onclick="$('godown-asof-date').value=''; loadGodownList();" style="font-size:11.5px; color:var(--text-soft); background:none; border:none; text-decoration:underline; padding:2px 0; cursor:pointer;">Clear date (back to current stock)</button>
-        <label class="history-section-label">Item Wise <span id="godown-list-title-suffix">Current</span> Stock (tap item for history)</label>
-        <div id="godown-list" class="scroll-box grid-box">Loading...</div>
-      </div>
-      <div class="panel-body" id="godown-history-view" style="display:none;">
-        <button class="back-btn" type="button" onclick="backToGodownList()">← Back to Stock List</button>
-        <div id="history-item-header" class="history-item-header"></div>
-        <label class="history-section-label">Full Transaction History</label>
-        <div id="history-list" class="scroll-box">Loading...</div>
-      </div>
-    </div>
-
-    <!-- =============== RECORDS (raw sheet viewers) =============== -->
-    <div class="panel" id="view-records" hidden>
-      <div class="panel-head">📋 Records — Raw Sheet Data</div>
+    <!-- =============== MIS DASHBOARD (Godown + Records + Links + Admin, consolidated) =============== -->
+    <div class="panel" id="view-mis" hidden>
+      <div class="panel-head">📊 MIS Dashboard</div>
       <div class="panel-body">
         <div class="sub-tab-row">
+          <button class="sub-tab-btn active" id="mis-tab-godown" type="button" onclick="switchMisTab('godown')">Godown</button>
+          <button class="sub-tab-btn" id="mis-tab-records" type="button" onclick="switchMisTab('records')">Records</button>
+          <button class="sub-tab-btn" id="mis-tab-links" type="button" onclick="switchMisTab('links')">Links</button>
+          <button class="sub-tab-btn" id="mis-tab-admin" type="button" onclick="switchMisTab('admin')">Admin</button>
+        </div>
+      </div>
+
+      <!-- ---- Godown ---- -->
+      <div class="panel-body" id="mis-view-godown">
+        <div id="godown-list-view">
+          <p style="font-size:12px; color:var(--text-soft); margin:0;">Shows current cumulative stock (all-time Production − Dispatch) by default. Pick a date and tap "View" to see what stock looked like at the end of that day instead.</p>
+          <div class="filter-row">
+            <select id="godown-category-filter" class="filter-select"><option value="All">All Categories</option></select>
+            <input id="godown-asof-date" class="filter-input" type="date">
+          </div>
+          <div class="filter-row">
+            <input id="godown-search-input" class="filter-input search-input" type="text" placeholder="Search item name or code..." oninput="filterGodownList(this.value)">
+            <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadGodownList()">🔄 Refresh Stock List</button>
+          </div>
+          <button type="button" onclick="$('godown-asof-date').value=''; loadGodownList();" style="font-size:11.5px; color:var(--text-soft); background:none; border:none; text-decoration:underline; padding:2px 0; cursor:pointer;">Clear date (back to current stock)</button>
+          <label class="history-section-label">Item Wise <span id="godown-list-title-suffix">Current</span> Stock (tap item for history)</label>
+          <div id="godown-list" class="scroll-box grid-box">Loading...</div>
+        </div>
+        <div id="godown-history-view" style="display:none; flex-direction:column; gap:12px;">
+          <button class="back-btn" type="button" onclick="backToGodownList()">← Back to Stock List</button>
+          <div id="history-item-header" class="history-item-header"></div>
+          <label class="history-section-label">Full Transaction History</label>
+          <div id="history-list" class="scroll-box">Loading...</div>
+        </div>
+      </div>
+
+      <!-- ---- Records ---- -->
+      <div class="panel-body" id="mis-view-records" style="display:none;">
+        <div class="sub-tab-row">
           <button class="sub-tab-btn active" id="rec-tab-invlog" type="button" onclick="switchRecordsSheet('invlog')">Inventory Log</button>
-          <button class="sub-tab-btn" id="rec-tab-verify" type="button" onclick="switchRecordsSheet('verify')">Stock Verification</button>
-          <button class="sub-tab-btn" id="rec-tab-stockdash" type="button" onclick="switchRecordsSheet('stockdash')">Stock Dashboard Snapshot</button>
+          <button class="sub-tab-btn" id="rec-tab-verify" type="button" onclick="switchRecordsSheet('verify')">Closing Stock History</button>
         </div>
         <div class="filter-row">
           <select id="rec-type-filter" class="filter-select" onchange="handleRecTypeChange()">
@@ -275,46 +256,36 @@
         <label class="history-section-label">Showing most recent 300 rows matching your filters</label>
         <div id="records-list" class="scroll-box" style="max-height:480px;">Choose a sheet above and tap "Load Records".</div>
       </div>
-    </div>
 
-    <!-- =============== LINKS =============== -->
-    <div id="view-links" hidden>
-      <div class="panel">
-        <div class="panel-head">📦 Branch Dashboard Links</div>
-        <div class="panel-body">
-          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Give each branch their own link — they'll see pending dispatches and can tap "Mark as Received" to confirm stock.</p>
-          <div id="branch-dashboard-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading…</div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-head">🔗 Category-Wise Manual Entry Links</div>
-        <div class="panel-body">
-          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Each link opens the Production/Dispatch Desk with Manual Entry pre-loaded for that category — handy for filling in stock without scanning barcodes.</p>
-          <div id="category-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading categories...</div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-head">🖥️ Production/Dispatch Desk</div>
-        <div class="panel-body">
-          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">General link (no category lock) for scanning/manual entry of Production and Dispatch:</p>
-          <div id="production-desk-link" style="font-size:12.5px;">Loading…</div>
-        </div>
-      </div>
-    </div>
+      <!-- ---- Links ---- -->
+      <div class="panel-body" id="mis-view-links" style="display:none;">
+        <label class="history-section-label">📦 Branch Dashboard Links</label>
+        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Give each branch their own link — they'll see pending dispatches and can tap "Mark as Received" to confirm stock.</p>
+        <div id="branch-dashboard-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading…</div>
 
-    <!-- =============== ADMIN / DIAGNOSTICS =============== -->
-    <div class="panel" id="view-admin" hidden>
-      <div class="panel-head">🔧 Admin &amp; System Status</div>
-      <div class="panel-body">
+        <label class="history-section-label" style="margin-top:10px;">🔗 Category-Wise Manual Entry Links</label>
+        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Each link opens the Production/Dispatch Desk with Manual Entry pre-loaded for that category.</p>
+        <div id="category-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading categories...</div>
+
+        <label class="history-section-label" style="margin-top:10px;">🖥️ Production/Dispatch Desk</label>
+        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">General link (no category lock) for scanning/manual entry of Production and Dispatch:</p>
+        <div id="production-desk-link" style="font-size:12.5px;">Loading…</div>
+      </div>
+
+      <!-- ---- Admin ---- -->
+      <div class="panel-body" id="mis-view-admin" style="display:none;">
+        <label class="history-section-label">WhatsApp — Daily Production & Dispatch Summary (to Owner)</label>
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Sends automatically once a day (default 9:00 PM) via the trigger below. Fill in <b>OWNER_WHATSAPP_NUMBER</b> and <b>DAILY_SUMMARY_TIME</b> in the WhatsApp_Config sheet, and set up a WATI template with a single {{1}} variable for the full report text.</p>
         <div class="filter-row">
-          <button class="master-btn" type="button" onclick="dashboardRunYesterdayNow()">▶ Process Yesterday Now (Verification)</button>
-          <button class="master-btn" type="button" onclick="setupAllTriggersNow()">⏱ Setup All Triggers</button>
-          <button class="master-btn" type="button" onclick="refreshProductCacheNow()">⚡ Refresh Product Cache</button>
-          <button class="master-btn" type="button" onclick="recalcSnapshotNow()">🔄 Recalculate Live Snapshot Now</button>
+          <button class="master-btn" type="button" onclick="setupAllTriggersNow()">⏱ Setup Daily Summary Trigger</button>
+          <button class="master-btn" type="button" onclick="sendDailySummaryNow()">📲 Send Daily Summary Now</button>
         </div>
         <div id="admin-status" class="status-msg-bar"></div>
         <div id="trigger-status-hint" class="history-section-label" style="text-transform:none; letter-spacing:0; color:var(--text-soft);">Trigger status: checking…</div>
-        <label class="history-section-label">System Status</label>
+        <div id="whatsapp-config-hint" class="history-section-label" style="text-transform:none; letter-spacing:0; color:var(--text-soft);">WhatsApp (WATI) config status: checking…</div>
+
+        <label class="history-section-label" style="margin-top:10px;">System Status</label>
+        <button class="master-btn" type="button" onclick="refreshProductCacheNow()">⚡ Refresh Product Cache</button>
         <div id="diag-content" class="diag-line">Loading system status...</div>
       </div>
     </div>
@@ -418,100 +389,125 @@
 
     function setStatus(msg, cls) { var bar = $("global-status"); bar.innerText = msg; bar.className = "status-msg-bar " + (cls || ""); }
 
-    var categoryLinksLoaded = false;
+    /* ======================= TOP-LEVEL TAB SWITCHING ======================= */
+    var TOP_TABS = ["dispatch","production","sales","closing","mis"];
+    var globalFiltersLoaded = false;
+
     function switchTopTab(tab) {
-      ["verify","sales","godown","records","links","admin"].forEach(function(t){
+      TOP_TABS.forEach(function(t){
         $("top-tab-" + t).classList.toggle("active", t === tab);
         $("view-" + t).hidden = (t !== tab);
       });
-      if (tab === 'sales' && $("sales-month-filter").options.length <= 1) loadSalesMonths();
-      if (tab === 'godown' && !godownListCache.length) loadGodownList();
-      if (tab === 'links' && !categoryLinksLoaded) { loadCategoryLinks(); renderBranchDashboardLinksList(); renderProductionDeskLink(); }
+      $("global-filter-bar").style.display = (tab === 'mis') ? 'none' : 'flex';
+      if (!globalFiltersLoaded) loadGlobalFilters(function(){ reloadActiveDataTab(tab); });
+      else reloadActiveDataTab(tab);
+      if (tab === 'mis') initMisDashboardOnce();
     }
 
-    /* ======================= VERIFICATION TAB ======================= */
-    var allVRows = [];
-    var currentDateStr = '', currentPrevStr = '';
+    function loadGlobalFilters(cb) {
+      globalFiltersLoaded = true;
+      var today = new Date();
+      $("g-dateFilter").value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
 
-    function toDMY(ymd) { if (!ymd) return ''; var p = ymd.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
-    function prevDayStr(ymd) {
-      var p = ymd.split('-').map(Number);
-      var d = new Date(p[0], p[1] - 1, p[2]); d.setDate(d.getDate() - 1);
-      var mm = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
-      return d.getFullYear() + '-' + mm + '-' + dd;
-    }
-
-    function updateVerifyBanner(branchLabel) {
-      var dToday = toDMY(currentDateStr), dPrev = toDMY(currentPrevStr);
-      $("v-formulaBanner").textContent =
-        (branchLabel === 'ALL' ? 'All Branches' : branchLabel) + ' — ' + dToday + ' :  ' +
-        'Opening Stock (Closing of ' + dPrev + ')  +  Dispatch Received (' + dToday + ')  −  Sales Sold (' + dToday + ')  =  Expected Closing (' + dToday + ')';
-    }
-
-    function initVerify() {
       google.script.run.withSuccessHandler(function(branches){
-        var sel = $("v-branchSelect");
+        var sel = $("g-branchFilter");
         branches.forEach(function(b){ var opt = document.createElement("option"); opt.value = b; opt.textContent = b; sel.appendChild(opt); });
       }).getBranchList();
 
       google.script.run.withSuccessHandler(function(cats){
-        var sel = $("v-categorySelect");
+        var sel = $("g-categoryFilter");
         (cats || []).forEach(function(c){ var opt = document.createElement("option"); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
+        if (cb) cb();
       }).getCategoriesWeb();
-
-      google.script.run.withSuccessHandler(function(dates){
-        var input = $("v-dateSelect");
-        var defaultDate;
-        if (dates.length) defaultDate = dates[dates.length - 1];
-        else { var y = new Date(); y.setDate(y.getDate() - 1); defaultDate = y.getFullYear() + '-' + String(y.getMonth()+1).padStart(2,'0') + '-' + String(y.getDate()).padStart(2,'0'); }
-        input.value = defaultDate;
-        loadVerifyData(defaultDate);
-      }).getAvailableDates();
     }
 
-    // Force-recomputes verification for the currently selected date from scratch — useful if
-    // the sheet has stale cached rows (e.g. generated by an older version of the code before a
-    // column was added/changed) instead of just reusing whatever's already in Stock_Verification.
-    function regenerateVerifyForDate() {
-      var dateStr = $("v-dateSelect").value;
-      if (!dateStr) { setStatus("Pick a date first.", "error"); return; }
-      $("v-tableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">Regenerating…</td></tr>';
-      setStatus("Regenerating verification for " + dateStr + "...", "");
-      google.script.run
-        .withSuccessHandler(function(res){
-          if (!res.success) { setStatus("Regenerate failed: " + res.message, "error"); return; }
-          setStatus("Regenerated " + dateStr + ".", "success");
-          loadVerifyData(dateStr);
-        })
-        .withFailureHandler(function(err){ setStatus("Regenerate error: " + err.message, "error"); })
-        .dashboardRunForDate(dateStr);
+    function getGlobalFilterParams() {
+      return { branch: $("g-branchFilter").value, category: $("g-categoryFilter").value, date: $("g-dateFilter").value };
+    }
+
+    function reloadActiveDataTab(tab) {
+      tab = tab || TOP_TABS.find(function(t){ return t !== 'mis' && !$("view-" + t).hidden; });
+      if (tab === 'dispatch') loadDispatchTab();
+      else if (tab === 'production') loadProductionTab();
+      else if (tab === 'sales') loadSalesTab();
+      else if (tab === 'closing') loadVerifyData($("g-dateFilter").value);
+    }
+
+    /* ======================= PIVOT TABLES: Dispatch / Production / Sales ======================= */
+    function renderPivotTable(containerId, statusId, rows, locationLabel) {
+      var box = $(containerId);
+      if (!rows || !rows.length) {
+        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No entries for this filter.</div>';
+        $(statusId).innerText = "0 item(s).";
+        return;
+      }
+      var html = '<div class="table-wrap"><table class="verify-table"><thead><tr><th>Item</th><th>Category</th><th>Date</th><th>' + locationLabel + '</th><th>Total</th></tr></thead><tbody>';
+      rows.forEach(function(r){
+        var parts = Object.keys(r.byBranch).map(function(b){ return b + ' ' + r.byBranch[b]; });
+        html += '<tr><td>' + r.item + '</td><td>' + (r.category || '—') + '</td><td>' + r.date + '</td><td>' + parts.join(', ') + '</td><td><b>' + r.total + '</b></td></tr>';
+      });
+      html += '</tbody></table></div>';
+      box.innerHTML = html;
+      $(statusId).innerText = rows.length + " item(s).";
+    }
+
+    function loadDispatchTab() {
+      var params = getGlobalFilterParams();
+      $("dispatch-table-box").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading dispatch data...", "");
+      google.script.run.withSuccessHandler(function(rows){ renderPivotTable("dispatch-table-box", "dispatch-status", rows, "Branch-wise Qty"); setStatus("Dispatch data loaded.", "success"); })
+        .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getDispatchPivotWeb(params);
+    }
+
+    function loadProductionTab() {
+      var params = getGlobalFilterParams();
+      $("production-table-box").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading production data...", "");
+      google.script.run.withSuccessHandler(function(rows){ renderPivotTable("production-table-box", "production-status", rows, "Location-wise Qty"); setStatus("Production data loaded.", "success"); })
+        .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getProductionPivotWeb(params);
+    }
+
+    function loadSalesTab() {
+      var params = getGlobalFilterParams();
+      $("sales-table-box").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading sales data...", "");
+      google.script.run.withSuccessHandler(function(rows){ renderPivotTable("sales-table-box", "sales-status", rows, "Branch-wise Qty"); setStatus("Sales data loaded.", "success"); })
+        .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getSalesPivotWeb(params);
+    }
+
+    /* ======================= CLOSING STOCK TAB (real-time, was "Verification") ======================= */
+    var allVRows = [];
+
+    function updateVerifyBanner() {
+      var dateStr = $("g-dateFilter").value;
+      if (!dateStr) { $("v-formulaBanner").innerText = ""; return; }
+      var d = new Date(dateStr); var prev = new Date(d.getTime()); prev.setDate(prev.getDate() - 1);
+      var prevStr = prev.getFullYear() + '-' + String(prev.getMonth()+1).padStart(2,'0') + '-' + String(prev.getDate()).padStart(2,'0');
+      $("v-formulaBanner").innerText = 'Opening Stock (Closing of ' + prevStr + ')  +  Dispatch Received (' + dateStr + ')  −  Sales Sold (' + dateStr + ')  =  System-Generated Closing (' + dateStr + ')';
     }
 
     function loadVerifyData(dateStr) {
       if (!dateStr) return;
-      currentDateStr = dateStr; currentPrevStr = prevDayStr(dateStr);
-      updateVerifyBanner($("v-branchSelect").value);
-      $("v-tableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">Loading… (auto-generates if not processed yet)</td></tr>';
+      updateVerifyBanner();
+      $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading… (computing live)</td></tr>';
       google.script.run
         .withSuccessHandler(function(res){
-          if (!res.success) { $("v-tableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">' + res.message + '</td></tr>'; allVRows = []; return; }
+          if (!res.success) { $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">' + res.message + '</td></tr>'; allVRows = []; return; }
           allVRows = res.rows; renderVerify();
         })
-        .withFailureHandler(function(err){ $("v-tableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">Error: ' + err.message + '</td></tr>'; })
+        .withFailureHandler(function(err){ $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Error: ' + err.message + '</td></tr>'; })
         .getOrGenerateVerificationData(dateStr);
     }
 
     function renderVerify() {
-      var branchFilter = $("v-branchSelect").value, statusFilter = $("v-statusSelect").value, categoryFilter = $("v-categorySelect").value;
-      updateVerifyBanner(branchFilter);
+      var branchFilter = $("g-branchFilter").value, categoryFilter = $("g-categoryFilter").value;
       var rows = allVRows.filter(function(r){
-        return (branchFilter === 'ALL' || r.branch === branchFilter)
-          && (statusFilter === 'ALL' || r.status === statusFilter)
-          && (categoryFilter === 'ALL' || (r.category || '') === categoryFilter);
+        return (branchFilter === 'All' || r.branch === branchFilter)
+          && (categoryFilter === 'All' || (r.category || '') === categoryFilter);
       });
 
       var tbody = $("v-tableBody"); tbody.innerHTML = '';
-      if (!rows.length) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:15px;">No rows match this filter.</td></tr>';
+      if (!rows.length) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">No rows match this filter.</td></tr>';
       rows.forEach(function(r){
         var tr = document.createElement('tr');
         if (r.status === 'MISMATCH') tr.className = 'mismatch'; else if (r.status.indexOf('No ') === 0) tr.className = 'noentry';
@@ -535,57 +531,45 @@
         '<div class="card"><div class="num" style="color:#7f8c8d">' + noEntry + '</div><div class="lbl">No Entry</div></div>';
     }
 
-    $("v-dateSelect").addEventListener('change', function(e){ loadVerifyData(e.target.value); });
-    $("v-branchSelect").addEventListener('change', renderVerify);
-    $("v-statusSelect").addEventListener('change', renderVerify);
-    $("v-categorySelect").addEventListener('change', renderVerify);
-
-    /* ======================= SALES (POS) TAB ======================= */
-    function loadSalesMonths() {
-      google.script.run.withSuccessHandler(function(months){
-        var select = $("sales-month-filter"); select.innerHTML = "";
-        if (months && months.length > 0) {
-          months.forEach(function(m){ var opt = document.createElement("option"); opt.value = m; opt.innerText = m; select.appendChild(opt); });
-          select.value = months[months.length - 1];
-        } else select.innerHTML = '<option value="">No months found</option>';
-      }).withFailureHandler(function(e){ setStatus("Could not load month list.", "error"); }).listAvailableSalesMonths();
-    }
-
-    function loadSalesSummary() {
-      var month = $("sales-month-filter").value;
-      if (!month) { setStatus("No month selected.", "error"); return; }
-      $("sales-by-location").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
-      $("sales-top-products").innerHTML = "";
-      setStatus("Reading POS sales for " + month + "...", "");
-
+    // Force-recomputes Closing Stock for the currently selected date from scratch.
+    function regenerateVerifyForDate() {
+      var dateStr = $("g-dateFilter").value;
+      if (!dateStr) { setStatus("Pick a date first.", "error"); return; }
+      $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Regenerating…</td></tr>';
+      setStatus("Regenerating closing stock for " + dateStr + "...", "");
       google.script.run
         .withSuccessHandler(function(res){
-          if (res && res.success) { renderSalesSummary(res); setStatus("Loaded " + res.rowCount + " sale rows for " + month + ".", "success"); }
-          else setStatus("Failed to load sales summary.", "error");
+          if (!res.success) { setStatus("Regenerate failed: " + res.message, "error"); return; }
+          setStatus("Regenerated " + dateStr + ".", "success");
+          loadVerifyData(dateStr);
         })
-        .withFailureHandler(function(e){ setStatus("Sales summary error: " + e.message, "error"); })
-        .getSalesSummaryWeb({ month: month });
+        .withFailureHandler(function(err){ setStatus("Regenerate error: " + err.message, "error"); })
+        .dashboardRunForDate(dateStr);
     }
 
-    function renderSalesSummary(data) {
-      var locBox = $("sales-by-location");
-      var locs = Object.keys(data.byLocation || {});
-      if (locs.length === 0) locBox.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No sales found for this month.</div>';
-      else {
-        var html = "";
-        locs.forEach(function(loc){ var v = data.byLocation[loc]; html += `<div class="sales-loc-row"><span>${loc}</span><span>Qty: ${v.qty} | <b>₹${v.amount.toLocaleString('en-IN')}</b></span></div>`; });
-        html += `<div class="sales-loc-row" style="font-weight:700;"><span>TOTAL</span><span>Qty: ${data.totalQty} | <b>₹${data.totalAmount.toLocaleString('en-IN')}</b></span></div>`;
-        locBox.innerHTML = html;
-      }
-      var prodBox = $("sales-top-products");
-      var products = data.topProducts || [];
-      if (products.length === 0) { prodBox.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No product data.</div>'; return; }
-      var phtml = "";
-      products.forEach(function(p, idx){ phtml += `<div class="top-product-row"><span><span class="top-product-rank">#${idx+1}</span>${p.product}</span><span>Qty: ${p.qty} | <b>₹${p.amount.toLocaleString('en-IN')}</b></span></div>`; });
-      prodBox.innerHTML = phtml;
+    /* ======================= MIS DASHBOARD (Godown + Records + Links + Admin) ======================= */
+    var misInitDone = false;
+    var MIS_TABS = ["godown","records","links","admin"];
+
+    function switchMisTab(tab) {
+      MIS_TABS.forEach(function(t){
+        $("mis-tab-" + t).classList.toggle("active", t === tab);
+        $("mis-view-" + t).style.display = (t === tab) ? "flex" : "none";
+      });
+      if (tab === 'godown' && !godownListCache.length) loadGodownList();
+      if (tab === 'links' && !categoryLinksLoaded) { loadCategoryLinks(); renderBranchDashboardLinksList(); renderProductionDeskLink(); }
     }
 
-    /* ======================= GODOWN TAB ======================= */
+    function initMisDashboardOnce() {
+      if (misInitDone) return;
+      misInitDone = true;
+      loadDiagnostics();
+      loadTriggerStatus();
+      loadWhatsAppConfigStatus();
+      switchMisTab('godown');
+    }
+
+    /* ---- Godown ---- */
     var godownListCache = [];
     var godownCategoriesLoaded = false;
 
@@ -600,7 +584,7 @@
 
     function loadGodownList() {
       loadGodownCategories();
-      var asOfDate = $("godown-asof-date").value; // '' = current/all-time
+      var asOfDate = $("godown-asof-date").value;
       $("godown-list-title-suffix").innerText = asOfDate ? ("as of " + asOfDate) : "Current";
       $("godown-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading stock list...</div>';
       setStatus(asOfDate ? ("Fetching godown stock as of " + asOfDate + "...") : "Fetching live godown stock...", "");
@@ -665,28 +649,23 @@
 
     function backToGodownList() { $("godown-history-view").style.display = "none"; $("godown-list-view").style.display = "block"; }
 
-    /* ======================= RECORDS TAB ======================= */
+    /* ---- Records ---- */
     var currentRecordsSheet = 'invlog';
     function switchRecordsSheet(sheetKey) {
       currentRecordsSheet = sheetKey;
-      ["invlog","verify","stockdash"].forEach(function(k){ $("rec-tab-" + k).classList.toggle("active", k === sheetKey); });
+      ["invlog","verify"].forEach(function(k){ $("rec-tab-" + k).classList.toggle("active", k === sheetKey); });
       $("rec-type-filter").style.display = sheetKey === 'invlog' ? "block" : "none";
       if (sheetKey === 'invlog') handleRecTypeChange(); else $("rec-location-filter").disabled = false;
       $("records-list").innerHTML = "Filters set — tap \"Load Records\" to view.";
     }
 
     // Production only ever happens at Savali Factory, so once "Production" is picked there's
-    // no other valid location to choose — auto-set it and lock the dropdown so the user
-    // doesn't need to separately select the branch. Any other Type re-enables normal choice.
+    // no other valid location to choose — auto-set it and lock the dropdown.
     function handleRecTypeChange() {
       var type = $("rec-type-filter").value;
       var locSel = $("rec-location-filter");
-      if (type === 'PRODUCTION') {
-        locSel.value = 'Savali Factory';
-        locSel.disabled = true;
-      } else {
-        locSel.disabled = false;
-      }
+      if (type === 'PRODUCTION') { locSel.value = 'Savali Factory'; locSel.disabled = true; }
+      else locSel.disabled = false;
     }
 
     function loadRecordsData() {
@@ -697,12 +676,9 @@
       if (currentRecordsSheet === 'invlog') {
         google.script.run.withSuccessHandler(function(data){ renderInventoryLogRecords(data || []); setStatus("Loaded " + (data ? data.length : 0) + " rows.", "success"); })
           .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getInventoryLogRawWeb({ type: type, branch: location === "All" ? "" : location, search: search });
-      } else if (currentRecordsSheet === 'verify') {
+      } else {
         google.script.run.withSuccessHandler(function(data){ renderVerifyRecords(data || []); setStatus("Loaded " + (data ? data.length : 0) + " rows.", "success"); })
           .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getVerificationRawWeb({ branch: location === "All" ? "" : location, search: search });
-      } else {
-        google.script.run.withSuccessHandler(function(data){ renderStockDashboardRecords(data || []); setStatus("Loaded " + (data ? data.length : 0) + " rows.", "success"); })
-          .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getStockDashboardRawWeb({ location: location, search: search });
       }
     }
 
@@ -724,22 +700,13 @@
       var html = "";
       rows.forEach(function(r){
         var statusClass = 'status-' + String(r.status).replace(/ /g, '-');
-        html += `<div class="dash-row"><div class="dash-row-top"><span class="dash-row-name">${r.item}</span><span class="dash-row-loc">${r.branch}</span></div><div class="dash-row-figs"><span>${r.date}</span><span>Opening: <b>${r.opening === '' ? '—' : r.opening}</b></span><span>Dispatch: <b>${r.dispatch}</b></span><span>Sales: <b>${r.sales}</b></span><span>Expected: <b>${r.expected}</b></span><span>Actual: <b>${r.actual === '' ? '—' : r.actual}</b></span><span class="status-pill ${statusClass}">${r.status}</span></div></div>`;
+        html += `<div class="dash-row"><div class="dash-row-top"><span class="dash-row-name">${r.item}</span><span class="dash-row-loc">${r.branch}</span></div><div class="dash-row-figs"><span>${r.date}</span><span>${r.category || '—'}</span><span>Opening: <b>${r.opening === '' ? '—' : r.opening}</b></span><span>Dispatch: <b>${r.dispatch}</b></span><span>Sales: <b>${r.sales}</b></span><span>Expected: <b>${r.expected}</b></span><span>Actual: <b>${r.actual === '' ? '—' : r.actual}</b></span><span class="status-pill ${statusClass}">${r.status}</span></div></div>`;
       });
       box.innerHTML = html;
     }
 
-    function renderStockDashboardRecords(rows) {
-      var box = $("records-list");
-      if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
-      var html = "";
-      rows.forEach(function(r){
-        html += `<div class="dash-row"><div class="dash-row-top"><span class="dash-row-name">${r.product}</span><span class="dash-row-loc">${r.location}</span></div><div class="dash-row-figs"><span>${r.date}</span><span>${r.category || '—'}</span><span>Opening: <b>${r.opening}</b></span><span>In: <b>${r.stockIn}</b></span><span>Sales/Out: <b>${r.salesOrOut}</b></span><span>Current: <b>${r.current}</b></span></div></div>`;
-      });
-      box.innerHTML = html;
-    }
-
-    /* ======================= LINKS TAB ======================= */
+    /* ---- Links ---- */
+    var categoryLinksLoaded = false;
     var cachedAppUrl = null;
     function withAppUrl(cb) {
       if (cachedAppUrl !== null) { cb(cachedAppUrl); return; }
@@ -784,36 +751,41 @@
       });
     }
 
-    /* ======================= ADMIN TAB ======================= */
+    /* ---- Admin ---- */
     function setAdminStatus(msg, isError) { var el = $("admin-status"); el.textContent = msg; el.className = "status-msg-bar " + (isError ? "error" : "success"); }
 
-    function dashboardRunYesterdayNow() {
-      setAdminStatus("Running… this can take a bit for large sheets.", false);
-      google.script.run.withSuccessHandler(function(res){ setAdminStatus(res.message, !res.success); if (res.success) { $("v-dateSelect").value = res.date; loadVerifyData(res.date); } })
-        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).dashboardRunYesterday();
-    }
     function setupAllTriggersNow() {
-      setAdminStatus("Setting up triggers…", false);
+      setAdminStatus("Setting up trigger…", false);
       google.script.run.withSuccessHandler(function(res){ setAdminStatus(res.message, !res.success); loadTriggerStatus(); })
         .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).setupAllTriggers();
+    }
+    function sendDailySummaryNow() {
+      setAdminStatus("Sending daily summary to owner…", false);
+      google.script.run.withSuccessHandler(function(res){ setAdminStatus(res.message, !res.success); })
+        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).dashboardSendDailySummaryNow();
     }
     function refreshProductCacheNow() {
       setAdminStatus("Refreshing product cache…", false);
       google.script.run.withSuccessHandler(function(){ setAdminStatus("Product cache refreshed.", false); })
-        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).refreshProductCache_();
-    }
-    function recalcSnapshotNow() {
-      setAdminStatus("Recalculating live snapshot…", false);
-      google.script.run.withSuccessHandler(function(res){ setAdminStatus(res.success ? ("Snapshot refreshed — " + res.itemCount + " rows.") : ("Error: " + res.error), !res.success); })
-        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).recalculateSnapshotsToSheet();
+        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).primeProductCache();
     }
 
     function loadTriggerStatus() {
       google.script.run.withSuccessHandler(function(res){
-        $("trigger-status-hint").textContent = "Nightly verification: " + (res.nightlyActive ? "active" : "not set") +
-          " | Morning WhatsApp summary: " + (res.morningActive ? "active" : "not set") +
-          " | Live snapshot (5 min): " + (res.snapshotActive ? "active" : "not set");
+        $("trigger-status-hint").textContent = "Daily WhatsApp summary trigger: " + (res.dailySummaryActive ? "active" : "not set — tap \"Setup Daily Summary Trigger\"");
       }).dashboardTriggerStatus();
+    }
+
+    function loadWhatsAppConfigStatus() {
+      google.script.run.withSuccessHandler(function(res){
+        var el = $("whatsapp-config-hint");
+        if (res.ready) el.textContent = 'WhatsApp (WATI) config looks ready.';
+        else {
+          var missing = [];
+          if (!res.endpointOk) missing.push('endpoint'); if (!res.tokenOk) missing.push('access token'); if (!res.templateOk) missing.push('template name');
+          el.textContent = 'WhatsApp (WATI) config incomplete: fill in ' + missing.join(', ') + ' in the WhatsApp_Config sheet.';
+        }
+      }).dashboardWhatsAppConfigStatus();
     }
 
     function loadDiagnostics() {
@@ -821,21 +793,19 @@
         $("diag-content").innerHTML =
           'Master rows: <b>' + d.masterRows + '</b> &nbsp;|&nbsp; ' +
           'Inventory Log rows: <b>' + d.inventoryLogRows + '</b> &nbsp;|&nbsp; ' +
-          'Stock Verification rows: <b>' + d.verificationRows + '</b> &nbsp;|&nbsp; ' +
+          'Closing Stock history rows: <b>' + d.verificationRows + '</b> &nbsp;|&nbsp; ' +
           'Sales months available: <b>' + (d.salesMonthsAvailable || []).join(", ") + '</b><br>' +
           'Recipes (FG count): <b>' + d.recipeFGCount + '</b> &nbsp;|&nbsp; ' +
           'IMS materials: <b>' + d.imsMaterialRows + '</b> &nbsp;|&nbsp; ' +
           'Item Name Correction rows: <b>' + d.itemNameCorrectionRows + '</b> &nbsp;|&nbsp; ' +
           'Timezone: <b>' + d.scriptTimeZone + '</b>' +
           (d.masterRows === 0 ? '<br><br>⚠ Master sheet has 0 rows — fill in Barcode/Item Name/Category/Unit/Sale_Rate/Cost_Rate.' : '') +
-          (d.inventoryLogRows === 0 ? '<br>⚠ Inventory Log has 0 rows — Savali Factory stock will show nothing until scans/manual entries are recorded via the Production/Dispatch Desk.' : '');
+          (d.inventoryLogRows === 0 ? '<br>⚠ Inventory Log has 0 rows — nothing will show until scans/manual entries are recorded via the Production/Dispatch Desk.' : '');
       }).withFailureHandler(function(e){ $("diag-content").innerText = "System status error: " + e.message; }).getSystemStatusWeb();
     }
 
     window.addEventListener('DOMContentLoaded', function () {
-      initVerify();
-      loadDiagnostics();
-      loadTriggerStatus();
+      switchTopTab('dispatch');
     });
   </script>
 </body>
