@@ -133,8 +133,8 @@
       <button class="top-tab-btn" id="top-tab-production" type="button" onclick="switchTopTab('production')">Production</button>
       <button class="top-tab-btn" id="top-tab-sales" type="button" onclick="switchTopTab('sales')">Sales (POS)</button>
       <button class="top-tab-btn" id="top-tab-closing" type="button" onclick="switchTopTab('closing')">Closing Stock</button>
-      <button class="top-tab-btn" id="top-tab-mis" type="button" onclick="switchTopTab('mis')">MIS Dashboard</button>
     </div>
+    <p style="text-align:center; font-size:12px; color:var(--text-soft); margin:0 0 14px;">Godown, Records, Links, and Admin now live on their own page — <a href="MIS_Dashboard.html" target="_blank" style="color:var(--navy); font-weight:700;">open MIS Dashboard</a>.</p>
 
     <!-- Shared filter bar — drives Dispatch / Production / Sales / Closing Stock. Hidden on MIS Dashboard. -->
     <div class="filter-row" id="global-filter-bar">
@@ -195,98 +195,6 @@
             <tbody id="v-tableBody"><tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
           </table>
         </div>
-      </div>
-    </div>
-
-    <!-- =============== MIS DASHBOARD (Godown + Records + Links + Admin, consolidated) =============== -->
-    <div class="panel" id="view-mis" hidden>
-      <div class="panel-head">📊 MIS Dashboard</div>
-      <div class="panel-body">
-        <div class="sub-tab-row">
-          <button class="sub-tab-btn active" id="mis-tab-godown" type="button" onclick="switchMisTab('godown')">Godown</button>
-          <button class="sub-tab-btn" id="mis-tab-records" type="button" onclick="switchMisTab('records')">Records</button>
-          <button class="sub-tab-btn" id="mis-tab-links" type="button" onclick="switchMisTab('links')">Links</button>
-          <button class="sub-tab-btn" id="mis-tab-admin" type="button" onclick="switchMisTab('admin')">Admin</button>
-        </div>
-      </div>
-
-      <!-- ---- Godown ---- -->
-      <div class="panel-body" id="mis-view-godown">
-        <div id="godown-list-view">
-          <p style="font-size:12px; color:var(--text-soft); margin:0;">Shows current cumulative stock (all-time Production − Dispatch) by default. Pick a date and tap "View" to see what stock looked like at the end of that day instead.</p>
-          <div class="filter-row">
-            <select id="godown-category-filter" class="filter-select"><option value="All">All Categories</option></select>
-            <input id="godown-asof-date" class="filter-input" type="date">
-          </div>
-          <div class="filter-row">
-            <input id="godown-search-input" class="filter-input search-input" type="text" placeholder="Search item name or code..." oninput="filterGodownList(this.value)">
-            <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadGodownList()">🔄 Refresh Stock List</button>
-          </div>
-          <button type="button" onclick="$('godown-asof-date').value=''; loadGodownList();" style="font-size:11.5px; color:var(--text-soft); background:none; border:none; text-decoration:underline; padding:2px 0; cursor:pointer;">Clear date (back to current stock)</button>
-          <label class="history-section-label">Item Wise <span id="godown-list-title-suffix">Current</span> Stock (tap item for history)</label>
-          <div id="godown-list" class="scroll-box grid-box">Loading...</div>
-        </div>
-        <div id="godown-history-view" style="display:none; flex-direction:column; gap:12px;">
-          <button class="back-btn" type="button" onclick="backToGodownList()">← Back to Stock List</button>
-          <div id="history-item-header" class="history-item-header"></div>
-          <label class="history-section-label">Full Transaction History</label>
-          <div id="history-list" class="scroll-box">Loading...</div>
-        </div>
-      </div>
-
-      <!-- ---- Records ---- -->
-      <div class="panel-body" id="mis-view-records" style="display:none;">
-        <div class="sub-tab-row">
-          <button class="sub-tab-btn active" id="rec-tab-invlog" type="button" onclick="switchRecordsSheet('invlog')">Inventory Log</button>
-          <button class="sub-tab-btn" id="rec-tab-verify" type="button" onclick="switchRecordsSheet('verify')">Closing Stock History</button>
-        </div>
-        <div class="filter-row">
-          <select id="rec-type-filter" class="filter-select" onchange="handleRecTypeChange()">
-            <option value="All">All Types</option><option value="PRODUCTION">Production</option><option value="DISPATCH">Dispatch</option><option value="SALE">Sale</option>
-          </select>
-          <select id="rec-location-filter" class="filter-select">
-            <option value="All">All Locations</option><option value="Savali Factory">Savali Factory</option>
-            <option value="Ram Mandir">Ram Mandir</option><option value="Vishrambagh">Vishrambagh</option>
-          </select>
-        </div>
-        <div class="filter-row">
-          <input id="rec-search-input" class="filter-input search-input" type="text" placeholder="Search product name...">
-          <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadRecordsData()">🔄 Load Records</button>
-        </div>
-        <label class="history-section-label">Showing most recent 300 rows matching your filters</label>
-        <div id="records-list" class="scroll-box" style="max-height:480px;">Choose a sheet above and tap "Load Records".</div>
-      </div>
-
-      <!-- ---- Links ---- -->
-      <div class="panel-body" id="mis-view-links" style="display:none;">
-        <label class="history-section-label">📦 Branch Dashboard Links</label>
-        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Give each branch their own link — they'll see pending dispatches and can tap "Mark as Received" to confirm stock.</p>
-        <div id="branch-dashboard-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading…</div>
-
-        <label class="history-section-label" style="margin-top:10px;">🔗 Category-Wise Manual Entry Links</label>
-        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Each link opens the Production/Dispatch Desk with Manual Entry pre-loaded for that category.</p>
-        <div id="category-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading categories...</div>
-
-        <label class="history-section-label" style="margin-top:10px;">🖥️ Production/Dispatch Desk</label>
-        <p style="font-size:12.5px; color:var(--text-soft); margin:0;">General link (no category lock) for scanning/manual entry of Production and Dispatch:</p>
-        <div id="production-desk-link" style="font-size:12.5px;">Loading…</div>
-      </div>
-
-      <!-- ---- Admin ---- -->
-      <div class="panel-body" id="mis-view-admin" style="display:none;">
-        <label class="history-section-label">WhatsApp — Daily Production & Dispatch Summary (to Owner)</label>
-        <p style="font-size:12px; color:var(--text-soft); margin:0;">Sends automatically once a day (default 9:00 PM) via the trigger below. Fill in <b>OWNER_WHATSAPP_NUMBER</b> and <b>DAILY_SUMMARY_TIME</b> in the WhatsApp_Config sheet, and set up a WATI template with a single {{1}} variable for the full report text.</p>
-        <div class="filter-row">
-          <button class="master-btn" type="button" onclick="setupAllTriggersNow()">⏱ Setup Daily Summary Trigger</button>
-          <button class="master-btn" type="button" onclick="sendDailySummaryNow()">📲 Send Daily Summary Now</button>
-        </div>
-        <div id="admin-status" class="status-msg-bar"></div>
-        <div id="trigger-status-hint" class="history-section-label" style="text-transform:none; letter-spacing:0; color:var(--text-soft);">Trigger status: checking…</div>
-        <div id="whatsapp-config-hint" class="history-section-label" style="text-transform:none; letter-spacing:0; color:var(--text-soft);">WhatsApp (WATI) config status: checking…</div>
-
-        <label class="history-section-label" style="margin-top:10px;">System Status</label>
-        <button class="master-btn" type="button" onclick="refreshProductCacheNow()">⚡ Refresh Product Cache</button>
-        <div id="diag-content" class="diag-line">Loading system status...</div>
       </div>
     </div>
 
@@ -390,7 +298,7 @@
     function setStatus(msg, cls) { var bar = $("global-status"); bar.innerText = msg; bar.className = "status-msg-bar " + (cls || ""); }
 
     /* ======================= TOP-LEVEL TAB SWITCHING ======================= */
-    var TOP_TABS = ["dispatch","production","sales","closing","mis"];
+    var TOP_TABS = ["dispatch","production","sales","closing"];
     var globalFiltersLoaded = false;
 
     function switchTopTab(tab) {
@@ -398,10 +306,8 @@
         $("top-tab-" + t).classList.toggle("active", t === tab);
         $("view-" + t).hidden = (t !== tab);
       });
-      $("global-filter-bar").style.display = (tab === 'mis') ? 'none' : 'flex';
       if (!globalFiltersLoaded) loadGlobalFilters(function(){ reloadActiveDataTab(tab); });
       else reloadActiveDataTab(tab);
-      if (tab === 'mis') initMisDashboardOnce();
     }
 
     function loadGlobalFilters(cb) {
@@ -426,7 +332,7 @@
     }
 
     function reloadActiveDataTab(tab) {
-      tab = tab || TOP_TABS.find(function(t){ return t !== 'mis' && !$("view-" + t).hidden; });
+      tab = tab || TOP_TABS.find(function(t){ return !$("view-" + t).hidden; });
       if (tab === 'dispatch') loadDispatchTab();
       else if (tab === 'production') loadProductionTab();
       else if (tab === 'sales') loadSalesTab();
@@ -545,263 +451,6 @@
         })
         .withFailureHandler(function(err){ setStatus("Regenerate error: " + err.message, "error"); })
         .dashboardRunForDate(dateStr);
-    }
-
-    /* ======================= MIS DASHBOARD (Godown + Records + Links + Admin) ======================= */
-    var misInitDone = false;
-    var MIS_TABS = ["godown","records","links","admin"];
-
-    function switchMisTab(tab) {
-      MIS_TABS.forEach(function(t){
-        $("mis-tab-" + t).classList.toggle("active", t === tab);
-        $("mis-view-" + t).style.display = (t === tab) ? "flex" : "none";
-      });
-      if (tab === 'godown' && !godownListCache.length) loadGodownList();
-      if (tab === 'links' && !categoryLinksLoaded) { loadCategoryLinks(); renderBranchDashboardLinksList(); renderProductionDeskLink(); }
-    }
-
-    function initMisDashboardOnce() {
-      if (misInitDone) return;
-      misInitDone = true;
-      loadDiagnostics();
-      loadTriggerStatus();
-      loadWhatsAppConfigStatus();
-      switchMisTab('godown');
-    }
-
-    /* ---- Godown ---- */
-    var godownListCache = [];
-    var godownCategoriesLoaded = false;
-
-    function loadGodownCategories() {
-      if (godownCategoriesLoaded) return;
-      godownCategoriesLoaded = true;
-      google.script.run.withSuccessHandler(function(cats){
-        var sel = $("godown-category-filter");
-        (cats || []).forEach(function(c){ var opt = document.createElement("option"); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
-      }).getCategoriesWeb();
-    }
-
-    function loadGodownList() {
-      loadGodownCategories();
-      var asOfDate = $("godown-asof-date").value;
-      $("godown-list-title-suffix").innerText = asOfDate ? ("as of " + asOfDate) : "Current";
-      $("godown-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading stock list...</div>';
-      setStatus(asOfDate ? ("Fetching godown stock as of " + asOfDate + "...") : "Fetching live godown stock...", "");
-      google.script.run.withSuccessHandler(function(data){
-        godownListCache = data || []; filterGodownList($("godown-search-input").value);
-        setStatus("Godown list updated. " + godownListCache.length + " items.", "success");
-      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getStockListWeb(asOfDate || null);
-    }
-
-    function filterGodownList(query) {
-      var q = (query || "").trim().toLowerCase();
-      var categoryFilter = $("godown-category-filter").value;
-      var list = godownListCache.filter(function(item){
-        var matchesCategory = (categoryFilter === "All" || item.category === categoryFilter);
-        var matchesSearch = !q || (item.name && item.name.toLowerCase().indexOf(q) !== -1) || (item.barcode && String(item.barcode).toLowerCase().indexOf(q) !== -1) || (item.category && item.category.toLowerCase().indexOf(q) !== -1);
-        return matchesCategory && matchesSearch;
-      });
-      renderGodownList(list);
-    }
-
-    $("godown-category-filter").addEventListener('change', function(){ filterGodownList($("godown-search-input").value); });
-
-    function renderGodownList(list) {
-      var box = $("godown-list");
-      if (!list || list.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No items found.</div>'; return; }
-      var html = "";
-      for (var i = 0; i < list.length; i++) {
-        var item = list[i]; var lowFlag = item.stock <= 0;
-        html += `<div class="history-row stock-row" onclick="showItemHistory('${item.barcode}', '${item.name.replace(/'/g, "\\'")}')"><div class="history-left"><strong style="color:var(--text); font-size:14px;">${item.name}</strong><span style="color:var(--text-soft); font-size:11px;">Code: ${item.barcode} | ${item.category}</span></div><div class="history-right"><span class="stock-badge${lowFlag ? ' low' : ''}">${item.stock}</span><span class="chevron-icon">›</span></div></div>`;
-      }
-      box.innerHTML = html;
-    }
-
-    function showItemHistory(barcode, name) {
-      $("godown-list-view").style.display = "none";
-      $("godown-history-view").style.display = "flex";
-      var matched = godownListCache.find(function(it){ return it.barcode === barcode; });
-      var currentStock = matched ? matched.stock : "—", category = matched ? matched.category : "";
-      $("history-item-header").innerHTML = `<strong>${name}</strong><span>Code: ${barcode} | ${category}</span><span style="font-size:13.5px; color:var(--navy); font-weight:700; margin-top:4px;">Godown Current Stock: ${currentStock}</span>`;
-      $("history-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading history...</div>';
-      setStatus("Fetching item history...", "");
-      google.script.run.withSuccessHandler(function(data){ renderItemHistory(data || []); setStatus("History loaded for " + name + ".", "success"); })
-        .withFailureHandler(function(e){ $("history-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Could not load history.</div>'; })
-        .getItemHistoryWeb(barcode, name);
-    }
-
-    function renderItemHistory(historyList) {
-      var box = $("history-list");
-      if (!historyList || historyList.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No PRODUCTION/DISPATCH transactions recorded yet for this item (branch POS sales appear in the Sales tab instead).</div>'; return; }
-      var html = "";
-      for (var i = 0; i < historyList.length; i++) {
-        var txn = historyList[i];
-        var cls = txn.type === "PRODUCTION" ? "prod" : (txn.type === "DISPATCH" ? "disp" : "sale");
-        var icon = txn.type === "PRODUCTION" ? "⬆ PRODUCTION" : (txn.type === "DISPATCH" ? "⬇ DISPATCH" : "🛍️ SALE");
-        var sign = txn.type === "PRODUCTION" ? "+" : "-";
-        var branchLine = txn.branch ? (" | Branch: " + txn.branch) : "";
-        var valueLine = txn.value ? (" | ₹" + Number(txn.value).toLocaleString('en-IN')) : "";
-        html += `<div class="txn-row"><div class="txn-left"><span class="txn-type-tag ${cls}">${icon}</span><span style="color:var(--text-soft); font-size:11px;">${txn.timestamp}${branchLine}${valueLine}</span></div><span class="txn-qty-change ${cls}">${sign}${txn.qty}</span></div>`;
-      }
-      box.innerHTML = html;
-    }
-
-    function backToGodownList() { $("godown-history-view").style.display = "none"; $("godown-list-view").style.display = "block"; }
-
-    /* ---- Records ---- */
-    var currentRecordsSheet = 'invlog';
-    function switchRecordsSheet(sheetKey) {
-      currentRecordsSheet = sheetKey;
-      ["invlog","verify"].forEach(function(k){ $("rec-tab-" + k).classList.toggle("active", k === sheetKey); });
-      $("rec-type-filter").style.display = sheetKey === 'invlog' ? "block" : "none";
-      if (sheetKey === 'invlog') handleRecTypeChange(); else $("rec-location-filter").disabled = false;
-      $("records-list").innerHTML = "Filters set — tap \"Load Records\" to view.";
-    }
-
-    // Production only ever happens at Savali Factory, so once "Production" is picked there's
-    // no other valid location to choose — auto-set it and lock the dropdown.
-    function handleRecTypeChange() {
-      var type = $("rec-type-filter").value;
-      var locSel = $("rec-location-filter");
-      if (type === 'PRODUCTION') { locSel.value = 'Savali Factory'; locSel.disabled = true; }
-      else locSel.disabled = false;
-    }
-
-    function loadRecordsData() {
-      var location = $("rec-location-filter").value, search = $("rec-search-input").value, type = $("rec-type-filter").value;
-      $("records-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
-      setStatus("Loading records...", "");
-
-      if (currentRecordsSheet === 'invlog') {
-        google.script.run.withSuccessHandler(function(data){ renderInventoryLogRecords(data || []); setStatus("Loaded " + (data ? data.length : 0) + " rows.", "success"); })
-          .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getInventoryLogRawWeb({ type: type, branch: location === "All" ? "" : location, search: search });
-      } else {
-        google.script.run.withSuccessHandler(function(data){ renderVerifyRecords(data || []); setStatus("Loaded " + (data ? data.length : 0) + " rows.", "success"); })
-          .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getVerificationRawWeb({ branch: location === "All" ? "" : location, search: search });
-      }
-    }
-
-    function renderInventoryLogRecords(rows) {
-      var box = $("records-list");
-      if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
-      var html = "";
-      rows.forEach(function(r){
-        var cls = r.type === "PRODUCTION" ? "prod" : (r.type === "DISPATCH" ? "disp" : "sale");
-        var recTag = r.receivedStatus === "Pending" ? ' <span style="color:var(--terracotta); font-weight:700;">(Pending)</span>' : (r.receivedStatus === "Received" ? ' <span style="color:var(--green); font-weight:700;">(Received)</span>' : '');
-        html += `<div class="txn-row"><div class="txn-left"><span class="txn-type-tag ${cls}">${r.type}</span><span style="color:var(--text-soft); font-size:11px;">${r.timestamp} | ${r.product}${r.branch ? ' | ' + r.branch : ''}${recTag}</span></div><span class="txn-qty-change ${cls}">${r.qty}</span></div>`;
-      });
-      box.innerHTML = html;
-    }
-
-    function renderVerifyRecords(rows) {
-      var box = $("records-list");
-      if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
-      var html = "";
-      rows.forEach(function(r){
-        var statusClass = 'status-' + String(r.status).replace(/ /g, '-');
-        html += `<div class="dash-row"><div class="dash-row-top"><span class="dash-row-name">${r.item}</span><span class="dash-row-loc">${r.branch}</span></div><div class="dash-row-figs"><span>${r.date}</span><span>${r.category || '—'}</span><span>Opening: <b>${r.opening === '' ? '—' : r.opening}</b></span><span>Dispatch: <b>${r.dispatch}</b></span><span>Sales: <b>${r.sales}</b></span><span>Expected: <b>${r.expected}</b></span><span>Actual: <b>${r.actual === '' ? '—' : r.actual}</b></span><span class="status-pill ${statusClass}">${r.status}</span></div></div>`;
-      });
-      box.innerHTML = html;
-    }
-
-    /* ---- Links ---- */
-    var categoryLinksLoaded = false;
-    var cachedAppUrl = null;
-    function withAppUrl(cb) {
-      if (cachedAppUrl !== null) { cb(cachedAppUrl); return; }
-      google.script.run.withSuccessHandler(function(url){ cachedAppUrl = url || window.location.href.split('?')[0]; cb(cachedAppUrl); })
-        .withFailureHandler(function(){ cachedAppUrl = window.location.href.split('?')[0]; cb(cachedAppUrl); }).getAppUrlWeb();
-    }
-
-    function renderBranchDashboardLinksList() {
-      withAppUrl(function(base){
-        var box = $("branch-dashboard-links-list");
-        var html = "";
-        BRANCHES.forEach(function(loc){
-          var link = base + "?page=branch&branch=" + encodeURIComponent(loc);
-          html += '<div><b>' + loc + ':</b> <a href="' + link + '" target="_blank" style="color:var(--navy);">' + link + '</a></div>';
-        });
-        box.innerHTML = html;
-      });
-    }
-
-    function loadCategoryLinks() {
-      var box = $("category-links-list");
-      box.innerHTML = "Loading categories...";
-      google.script.run.withSuccessHandler(function(cats){
-        withAppUrl(function(base){
-          if (cats && cats.length > 0) {
-            var html = "";
-            cats.forEach(function(cat){
-              var link = base + "?page=production&category=" + encodeURIComponent(cat);
-              html += '<div><b>' + cat + ':</b> <a href="' + link + '" target="_blank" style="color:var(--navy);">' + link + '</a></div>';
-            });
-            box.innerHTML = html;
-            categoryLinksLoaded = true;
-          } else box.innerHTML = '<div style="color:#888;">No categories found in Master.</div>';
-        });
-      }).withFailureHandler(function(e){ box.innerHTML = '<div style="color:#888;">Could not load categories.</div>'; }).getCategoriesWeb();
-    }
-
-    function renderProductionDeskLink() {
-      withAppUrl(function(base){
-        var link = base + "?page=production";
-        $("production-desk-link").innerHTML = '<a href="' + link + '" target="_blank" style="color:var(--navy); font-weight:700;">' + link + '</a>';
-      });
-    }
-
-    /* ---- Admin ---- */
-    function setAdminStatus(msg, isError) { var el = $("admin-status"); el.textContent = msg; el.className = "status-msg-bar " + (isError ? "error" : "success"); }
-
-    function setupAllTriggersNow() {
-      setAdminStatus("Setting up trigger…", false);
-      google.script.run.withSuccessHandler(function(res){ setAdminStatus(res.message, !res.success); loadTriggerStatus(); })
-        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).setupAllTriggers();
-    }
-    function sendDailySummaryNow() {
-      setAdminStatus("Sending daily summary to owner…", false);
-      google.script.run.withSuccessHandler(function(res){ setAdminStatus(res.message, !res.success); })
-        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).dashboardSendDailySummaryNow();
-    }
-    function refreshProductCacheNow() {
-      setAdminStatus("Refreshing product cache…", false);
-      google.script.run.withSuccessHandler(function(){ setAdminStatus("Product cache refreshed.", false); })
-        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).primeProductCache();
-    }
-
-    function loadTriggerStatus() {
-      google.script.run.withSuccessHandler(function(res){
-        $("trigger-status-hint").textContent = "Daily WhatsApp summary trigger: " + (res.dailySummaryActive ? "active" : "not set — tap \"Setup Daily Summary Trigger\"");
-      }).dashboardTriggerStatus();
-    }
-
-    function loadWhatsAppConfigStatus() {
-      google.script.run.withSuccessHandler(function(res){
-        var el = $("whatsapp-config-hint");
-        if (res.ready) el.textContent = 'WhatsApp (WATI) config looks ready.';
-        else {
-          var missing = [];
-          if (!res.endpointOk) missing.push('endpoint'); if (!res.tokenOk) missing.push('access token'); if (!res.templateOk) missing.push('template name');
-          el.textContent = 'WhatsApp (WATI) config incomplete: fill in ' + missing.join(', ') + ' in the WhatsApp_Config sheet.';
-        }
-      }).dashboardWhatsAppConfigStatus();
-    }
-
-    function loadDiagnostics() {
-      google.script.run.withSuccessHandler(function(d){
-        $("diag-content").innerHTML =
-          'Master rows: <b>' + d.masterRows + '</b> &nbsp;|&nbsp; ' +
-          'Inventory Log rows: <b>' + d.inventoryLogRows + '</b> &nbsp;|&nbsp; ' +
-          'Closing Stock history rows: <b>' + d.verificationRows + '</b> &nbsp;|&nbsp; ' +
-          'Sales months available: <b>' + (d.salesMonthsAvailable || []).join(", ") + '</b><br>' +
-          'Recipes (FG count): <b>' + d.recipeFGCount + '</b> &nbsp;|&nbsp; ' +
-          'IMS materials: <b>' + d.imsMaterialRows + '</b> &nbsp;|&nbsp; ' +
-          'Item Name Correction rows: <b>' + d.itemNameCorrectionRows + '</b> &nbsp;|&nbsp; ' +
-          'Timezone: <b>' + d.scriptTimeZone + '</b>' +
-          (d.masterRows === 0 ? '<br><br>⚠ Master sheet has 0 rows — fill in Barcode/Item Name/Category/Unit/Sale_Rate/Cost_Rate.' : '') +
-          (d.inventoryLogRows === 0 ? '<br>⚠ Inventory Log has 0 rows — nothing will show until scans/manual entries are recorded via the Production/Dispatch Desk.' : '');
-      }).withFailureHandler(function(e){ $("diag-content").innerText = "System status error: " + e.message; }).getSystemStatusWeb();
     }
 
     window.addEventListener('DOMContentLoaded', function () {
