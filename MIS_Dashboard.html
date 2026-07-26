@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raghuvir Sweets & Bakers — MIS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght=600&family=Inter:wght=400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#F3EDE2; --surface:#FFFFFF; --text:#261E16; --text-soft:#706254; --border:#DFD2BF;
+      --navy:#2C4A5E; --navy-soft:#DCE6EA; --gold:#96731E; --gold-soft:#F3E7C9;
+      --green:#3D5E26; --green-soft:#DFE8D5; --terracotta:#A63C19; --terracotta-soft:#F5DFD6;
+      --radius:16px;
+    }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
+    .wrap{ width:100%; max-width:1180px; margin:0 auto; padding:16px 14px 48px; }
+
+    header{ text-align:center; margin-bottom:16px; }
+    header h1{ font-family:'Fraunces',serif; font-size:clamp(20px,4vw,28px); font-weight:600; margin:0; color:var(--text); }
+    header p{ margin:3px 0 0; font-size:13px; color:var(--text-soft); font-weight:500; }
+
+    .panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.04); margin-bottom:16px; }
+    .panel-head{ display:flex; align-items:center; gap:8px; padding:14px 16px; font-family:'Fraunces',serif; font-size:17px; font-weight:600; border-bottom:1px solid var(--border); background:var(--navy-soft); color:var(--navy); }
+    .panel-body{ padding:16px; display:flex; flex-direction:column; gap:12px; }
+
+    .top-tab-row{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+    .top-tab-btn{
+      flex:1 1 110px; padding:12px 4px; border-radius:12px; font-size:13px; font-weight:700;
+      font-family:inherit; cursor:pointer; border:2px solid var(--navy); background:#fff; color:var(--navy);
+    }
+    .top-tab-btn.active{ background:var(--navy); color:#fff; }
+
+    .sub-tab-row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .sub-tab-btn{ padding:9px 14px; border-radius:9px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; border:2px solid var(--gold); background:#fff; color:var(--gold); }
+    .sub-tab-btn.active{ background:var(--gold); color:#fff; }
+
+    .filter-row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .filter-select, .filter-input{
+      flex:1 1 160px; padding:10px 10px; border:1px solid var(--border); border-radius:10px;
+      font-size:13px; font-family:inherit; background:#fff; color:var(--text); outline:none;
+    }
+    .filter-row input[type=date]{ flex:1 1 160px; padding:10px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px; }
+    .search-input{ width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; background:#fff; color:var(--text); outline:none; }
+
+    .master-btn { width:100%; padding:14px; border:none; border-radius:10px; font-size:14.5px; font-weight:700; font-family:inherit; color:#fff; cursor:pointer; background:var(--navy); box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+    .master-btn:active { opacity:0.92; transform:translateY(1px); }
+    .master-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+    @media (min-width:700px){ .master-btn{ width:auto; padding:12px 28px; align-self:flex-start; } }
+
+    .history-section-label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-soft); font-weight:700; margin-top:4px; }
+    .scroll-box { border:1px solid var(--border); border-radius:12px; background:#FAF7F2; max-height:440px; overflow-y:auto; padding:2px 12px; }
+    @media (min-width:760px){
+      .scroll-box.grid-box{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; padding:12px; align-content:start; }
+      .scroll-box.grid-box .dash-row, .scroll-box.grid-box .history-row{ border:1px solid var(--border); border-radius:10px; padding:12px; background:#fff; border-bottom:1px solid var(--border); }
+    }
+
+    .status-msg-bar{ min-height:18px; font-size:13px; font-weight:600; text-align:center; }
+    .status-msg-bar.success{ color:var(--green); }
+    .status-msg-bar.error{ color:var(--terracotta); }
+
+    .dash-row{ display:flex; flex-direction:column; gap:6px; font-size:13px; padding:11px 0; border-bottom:1px dashed var(--border); }
+    .dash-row:last-child{ border-bottom:none; }
+    .dash-row-top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    .dash-row-name{ font-weight:700; color:var(--text); font-size:14px; }
+    .dash-row-loc{ font-size:10.5px; color:var(--navy); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--navy-soft); padding:2px 7px; border-radius:6px; white-space:nowrap; }
+    .dash-row-figs{ display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--text-soft); }
+    .dash-row-figs b{ color:var(--text); }
+
+    .stock-row{ cursor:pointer; }
+    .stock-row:active{ opacity:0.7; }
+    .stock-badge{ font-weight:700; color:var(--navy); background:#EAF1F4; padding:5px 10px; border-radius:8px; font-size:14px; min-width:34px; text-align:center; }
+    .stock-badge.low{ color:#9E2F11; background:#F5DFD6; }
+    .chevron-icon{ color:var(--text-soft); font-size:14px; }
+    .history-row { display:flex; justify-content:space-between; align-items:center; font-size:13.5px; padding:11px 0; border-bottom:1px dashed var(--border); gap:8px; }
+    .history-row:last-child { border-bottom:none; }
+    .history-left { display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .history-left strong{ overflow-wrap:anywhere; }
+    .history-right { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+
+    .back-btn{ border:none; background:none; font-size:14px; cursor:pointer; color:var(--navy); padding:2px 0; font-weight:700; align-self:flex-start; }
+    .history-item-header{ background:var(--navy-soft); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
+    .history-item-header strong{ font-family:'Fraunces',serif; font-size:17px; color:var(--navy); }
+    .history-item-header span{ font-size:12px; color:var(--text-soft); font-weight:600; }
+    .txn-row{ display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:10px 0; border-bottom:1px dashed var(--border); gap:8px; }
+    .txn-row:last-child{ border-bottom:none; }
+    .txn-left{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .txn-type-tag{ font-weight:700; font-size:13px; }
+    .txn-type-tag.prod{ color:var(--green); } .txn-type-tag.disp{ color:var(--terracotta); } .txn-type-tag.sale{ color:var(--gold); }
+    .txn-qty-change{ font-weight:700; font-size:14px; padding:4px 9px; border-radius:6px; flex-shrink:0; }
+    .txn-qty-change.prod{ color:var(--green); background:var(--green-soft); }
+    .txn-qty-change.disp{ color:var(--terracotta); background:var(--terracotta-soft); }
+    .txn-qty-change.sale{ color:var(--gold); background:var(--gold-soft); }
+
+    .diag-line{ font-size:12px; color:var(--text-soft); line-height:1.7; }
+    .diag-line b{ color:var(--navy); }
+
+    .status-pill{ padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .status-OK{ background:#eafaf1; color:var(--green); }
+    .status-MISMATCH{ background:#fdecea; color:var(--terracotta); }
+    .status-No-Closing-Entry,.status-No-Opening-Data{ background:#eee; color:#7f8c8d; }
+    .status-Unknown{ background:#eee; color:#7f8c8d; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Raghuvir Sweets & Bakers</h1>
+      <p>MIS Dashboard — Godown, Records, Links &amp; Admin</p>
+    </header>
+
+    <div class="top-tab-row">
+      <button class="top-tab-btn active" id="top-tab-godown" type="button" onclick="switchTopTab('godown')">Godown</button>
+      <button class="top-tab-btn" id="top-tab-records" type="button" onclick="switchTopTab('records')">Records</button>
+      <button class="top-tab-btn" id="top-tab-links" type="button" onclick="switchTopTab('links')">Links</button>
+      <button class="top-tab-btn" id="top-tab-admin" type="button" onclick="switchTopTab('admin')">Admin</button>
+    </div>
+
+    <!-- ---- Godown ---- -->
+    <div class="panel" id="view-godown">
+      <div class="panel-head">🏭 Godown Stock (Savali Factory — Master List)</div>
+      <div class="panel-body" id="godown-list-view">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Shows current cumulative stock (all-time Production − Dispatch) by default. Pick a date and tap "View" to see what stock looked like at the end of that day instead.</p>
+        <div class="filter-row">
+          <select id="godown-category-filter" class="filter-select"><option value="All">All Categories</option></select>
+          <input id="godown-asof-date" class="filter-input" type="date">
+        </div>
+        <div class="filter-row">
+          <input id="godown-search-input" class="filter-input search-input" type="text" placeholder="Search item name or code..." oninput="filterGodownList(this.value)">
+          <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadGodownList()">🔄 Refresh Stock List</button>
+        </div>
+        <button type="button" onclick="$('godown-asof-date').value=''; loadGodownList();" style="font-size:11.5px; color:var(--text-soft); background:none; border:none; text-decoration:underline; padding:2px 0; cursor:pointer;">Clear date (back to current stock)</button>
+        <label class="history-section-label">Item Wise <span id="godown-list-title-suffix">Current</span> Stock (tap item for history)</label>
+        <div id="godown-list" class="scroll-box grid-box">Loading...</div>
+      </div>
+      <div class="panel-body" id="godown-history-view" style="display:none;">
+        <button class="back-btn" type="button" onclick="backToGodownList()">← Back to Stock List</button>
+        <div id="history-item-header" class="history-item-header"></div>
+        <label class="history-section-label">Full Transaction History</label>
+        <div id="history-list" class="scroll-box">Loading...</div>
+      </div>
+    </div>
+
+    <!-- ---- Records ---- -->
+    <div class="panel" id="view-records" hidden>
+      <div class="panel-head">📋 Records — Raw Sheet Data</div>
+      <div class="panel-body">
+        <div class="sub-tab-row">
+          <button class="sub-tab-btn active" id="rec-tab-invlog" type="button" onclick="switchRecordsSheet('invlog')">Inventory Log</button>
+          <button class="sub-tab-btn" id="rec-tab-verify" type="button" onclick="switchRecordsSheet('verify')">Closing Stock History</button>
+        </div>
+        <div class="filter-row">
+          <select id="rec-type-filter" class="filter-select" onchange="handleRecTypeChange()">
+            <option value="All">All Types</option><option value="PRODUCTION">Production</option><option value="DISPATCH">Dispatch</option><option value="SALE">Sale</option>
+          </select>
+          <select id="rec-location-filter" class="filter-select">
+            <option value="All">All Locations</option><option value="Savali Factory">Savali Factory</option>
+            <option value="Ram Mandir">Ram Mandir</option><option value="Vishrambagh">Vishrambagh</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <input id="rec-search-input" class="filter-input search-input" type="text" placeholder="Search product name...">
+          <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadRecordsData()">🔄 Load Records</button>
+        </div>
+        <label class="history-section-label">Showing most recent 300 rows matching your filters</label>
+        <div id="records-list" class="scroll-box" style="max-height:480px;">Choose a sheet above and tap "Load Records".</div>
+      </div>
+    </div>
+
+    <!-- ---- Links ---- -->
+    <div id="view-links" hidden>
+      <div class="panel">
+        <div class="panel-head">📦 Branch Dashboard Links</div>
+        <div class="panel-body">
+          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Give each branch their own link — they'll see pending dispatches and can tap "Mark as Received" to confirm stock.</p>
+          <div id="branch-dashboard-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading…</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">🔗 Category-Wise Manual Entry Links</div>
+        <div class="panel-body">
+          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Each link opens the Production/Dispatch Desk with Manual Entry pre-loaded for that category — handy for filling in stock without scanning barcodes.</p>
+          <div id="category-links-list" style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">Loading categories...</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">🖥️ Production/Dispatch Desk</div>
+        <div class="panel-body">
+          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">General link (no category lock) for scanning/manual entry of Production and Dispatch:</p>
+          <div id="production-desk-link" style="font-size:12.5px;">Loading…</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">📊 Admin Dashboard</div>
+        <div class="panel-body">
+          <p style="font-size:12.5px; color:var(--text-soft); margin:0;">Dispatch, Production, Sales (POS), and Closing Stock now live on their own page:</p>
+          <div id="admin-dashboard-link" style="font-size:12.5px;">Edit ADMIN_DASHBOARD_URL at the top of the script to fill this in.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Admin ---- -->
+    <div class="panel" id="view-admin" hidden>
+      <div class="panel-head">🔧 Admin, WhatsApp &amp; System Status</div>
+      <div class="panel-body">
+        <label class="history-section-label">WhatsApp — Daily Production & Dispatch Summary (to Owner)</label>
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Sends automatically once a day (default 9:00 PM) via the trigger below. Fill in <b>OWNER_WHATSAPP_NUMBER</b> and <b>DAILY_SUMMARY_TIME</b> in the WhatsApp_Config sheet, and set up a WATI template with a single {{1}} variable for the full report text.</p>
+        <div class="filter-row">
+          <button class="master-btn" type="button" onclick="setupAllTriggersNow()">⏱ Setup Daily Summary Trigger</button>
+          <button class="master-btn" type="button" onclick="sendDailySummaryNow()">📲 Send Daily Summary Now</button>
+        </div>
+        <div id="admin-status" class="status-msg-bar"></div>
+        <div id="trigger-status-hint" class="history-section-label" style="text-transform:none; letter-spacing:0; color:var(--text-soft);">Trigger status: checking…</div>
+        <div id="whatsapp-config-hint" class="history-section-label" style="text-transform:none; letter-spacing:0; color:var(--text-soft);">WhatsApp (WATI) config status: checking…</div>
+
+        <label class="history-section-label" style="margin-top:10px;">System Status</label>
+        <button class="master-btn" type="button" onclick="refreshProductCacheNow()">⚡ Refresh Product Cache</button>
+        <div id="diag-content" class="diag-line">Loading system status...</div>
+      </div>
+    </div>
+
+    <div id="global-status" class="status-msg-bar"></div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // ⚠️ EDIT THESE — same deployed Apps Script Web App URL as your other pages,
+    // and the URL where you've hosted Admin_Dashboard.html (for the Links tab).
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwFSBEAxxd1KQjYeeTBJZ86mABfH4ojsuyqXcLjMZ9NBfvUYJ9SS3nqmrMefEgDsU-w/exec';
+    var ADMIN_DASHBOARD_URL = ''; // e.g. 'https://yourusername.github.io/your-repo/Admin_Dashboard.html'
+    // ============================================================================
+    //
+    // This page is hosted outside Apps Script (e.g. GitHub Pages), so it can't use
+    // google.script.run directly — that only works for HTML served BY Apps Script.
+    // This shim recreates the same google.script.run.functionName(args)
+    //   .withSuccessHandler(fn).withFailureHandler(fn)
+    // call pattern used throughout this file, but sends each call as a JSONP
+    // request (a dynamically-inserted <script> tag) to the deployed Web App,
+    // which routes it to the real server function via ?action=functionName.
+    // JSONP is used (not fetch) because Apps Script Web App responses don't
+    // include CORS headers, so a cross-origin fetch() would be blocked by the
+    // browser — a <script> tag isn't subject to that restriction.
+    (function () {
+      var callbackCounter = 0;
+
+      function jsonpCall(functionName, args, successHandler, failureHandler) {
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR_DEPLOYED') === 0) {
+          var msg = 'APPS_SCRIPT_URL is not set yet — paste your deployed /exec URL at the top of the <script> block.';
+          console.error(msg);
+          if (failureHandler) failureHandler({ message: msg });
+          return;
+        }
+
+        var callbackName = '__gs_cb_' + (callbackCounter++) + '_' + Date.now();
+        var script = document.createElement('script');
+
+        function cleanup() {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = function (response) {
+          cleanup();
+          if (!response || response.__ok === false) {
+            var errMsg = (response && response.__error) || ('Unknown server error calling ' + functionName);
+            if (failureHandler) failureHandler({ message: errMsg }); else console.error(errMsg);
+            return;
+          }
+          if (successHandler) successHandler(response.result);
+        };
+
+        var url = APPS_SCRIPT_URL
+          + '?action=' + encodeURIComponent(functionName)
+          + '&callback=' + encodeURIComponent(callbackName)
+          + '&args=' + encodeURIComponent(JSON.stringify(args || []));
+
+        script.src = url;
+        script.onerror = function () {
+          cleanup();
+          if (failureHandler) failureHandler({ message: 'Network error calling ' + functionName + ' (check APPS_SCRIPT_URL and that the deployment is accessible to Anyone).' });
+        };
+        document.body.appendChild(script);
+      }
+
+      function makeRunProxy() {
+        var pendingSuccess = null;
+        var pendingFailure = null;
+
+        var proxy = new Proxy({}, {
+          get: function (target, prop) {
+            if (prop === 'withSuccessHandler') {
+              return function (fn) { pendingSuccess = fn; return proxy; };
+            }
+            if (prop === 'withFailureHandler') {
+              return function (fn) { pendingFailure = fn; return proxy; };
+            }
+            if (prop === 'withUserObject') {
+              return function () { return proxy; };
+            }
+            return function () {
+              var args = Array.prototype.slice.call(arguments);
+              var s = pendingSuccess, f = pendingFailure;
+              pendingSuccess = null;
+              pendingFailure = null;
+              jsonpCall(String(prop), args, s, f);
+            };
+          }
+        });
+        return proxy;
+      }
+
+      window.google = window.google || {};
+      window.google.script = window.google.script || {};
+      window.google.script.run = makeRunProxy();
+    })();
+    function $(id){ return document.getElementById(id); }
+    var BRANCHES = ['Ram Mandir', 'Vishrambagh'];
+
+    function setStatus(msg, cls) { var bar = $("global-status"); bar.innerText = msg; bar.className = "status-msg-bar " + (cls || ""); }
+
+    /* ======================= TOP-LEVEL TAB SWITCHING ======================= */
+    var TOP_TABS = ["godown","records","links","admin"];
+    function switchTopTab(tab) {
+      TOP_TABS.forEach(function(t){
+        $("top-tab-" + t).classList.toggle("active", t === tab);
+        $("view-" + t).hidden = (t !== tab);
+      });
+      if (tab === 'godown' && !godownListCache.length) loadGodownList();
+      if (tab === 'links' && !categoryLinksLoaded) { loadCategoryLinks(); renderBranchDashboardLinksList(); renderProductionDeskLink(); renderAdminDashboardLink(); }
+      if (tab === 'admin') { loadDiagnostics(); loadTriggerStatus(); loadWhatsAppConfigStatus(); }
+    }
+
+    /* ---- Godown ---- */
+    var godownListCache = [];
+    var godownCategoriesLoaded = false;
+
+    function loadGodownCategories() {
+      if (godownCategoriesLoaded) return;
+      godownCategoriesLoaded = true;
+      google.script.run.withSuccessHandler(function(cats){
+        var sel = $("godown-category-filter");
+        (cats || []).forEach(function(c){ var opt = document.createElement("option"); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
+      }).getCategoriesWeb();
+    }
+
+    function loadGodownList() {
+      loadGodownCategories();
+      var asOfDate = $("godown-asof-date").value;
+      $("godown-list-title-suffix").innerText = asOfDate ? ("as of " + asOfDate) : "Current";
+      $("godown-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading stock list...</div>';
+      setStatus(asOfDate ? ("Fetching godown stock as of " + asOfDate + "...") : "Fetching live godown stock...", "");
+      google.script.run.withSuccessHandler(function(data){
+        godownListCache = data || []; filterGodownList($("godown-search-input").value);
+        setStatus("Godown list updated. " + godownListCache.length + " items.", "success");
+      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getStockListWeb(asOfDate || null);
+    }
+
+    function filterGodownList(query) {
+      var q = (query || "").trim().toLowerCase();
+      var categoryFilter = $("godown-category-filter").value;
+      var list = godownListCache.filter(function(item){
+        var matchesCategory = (categoryFilter === "All" || item.category === categoryFilter);
+        var matchesSearch = !q || (item.name && item.name.toLowerCase().indexOf(q) !== -1) || (item.barcode && String(item.barcode).toLowerCase().indexOf(q) !== -1) || (item.category && item.category.toLowerCase().indexOf(q) !== -1);
+        return matchesCategory && matchesSearch;
+      });
+      renderGodownList(list);
+    }
+
+    $("godown-category-filter").addEventListener('change', function(){ filterGodownList($("godown-search-input").value); });
+
+    function renderGodownList(list) {
+      var box = $("godown-list");
+      if (!list || list.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No items found.</div>'; return; }
+      var html = "";
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i]; var lowFlag = item.stock <= 0;
+        html += `<div class="history-row stock-row" onclick="showItemHistory('${item.barcode}', '${item.name.replace(/'/g, "\\'")}')"><div class="history-left"><strong style="color:var(--text); font-size:14px;">${item.name}</strong><span style="color:var(--text-soft); font-size:11px;">Code: ${item.barcode} | ${item.category}</span></div><div class="history-right"><span class="stock-badge${lowFlag ? ' low' : ''}">${item.stock}</span><span class="chevron-icon">›</span></div></div>`;
+      }
+      box.innerHTML = html;
+    }
+
+    function showItemHistory(barcode, name) {
+      $("godown-list-view").style.display = "none";
+      $("godown-history-view").style.display = "flex";
+      var matched = godownListCache.find(function(it){ return it.barcode === barcode; });
+      var currentStock = matched ? matched.stock : "—", category = matched ? matched.category : "";
+      $("history-item-header").innerHTML = `<strong>${name}</strong><span>Code: ${barcode} | ${category}</span><span style="font-size:13.5px; color:var(--navy); font-weight:700; margin-top:4px;">Godown Current Stock: ${currentStock}</span>`;
+      $("history-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading history...</div>';
+      setStatus("Fetching item history...", "");
+      google.script.run.withSuccessHandler(function(data){ renderItemHistory(data || []); setStatus("History loaded for " + name + ".", "success"); })
+        .withFailureHandler(function(e){ $("history-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Could not load history.</div>'; })
+        .getItemHistoryWeb(barcode, name);
+    }
+
+    function renderItemHistory(historyList) {
+      var box = $("history-list");
+      if (!historyList || historyList.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No PRODUCTION/DISPATCH transactions recorded yet for this item (branch POS sales appear in the Sales tab instead).</div>'; return; }
+      var html = "";
+      for (var i = 0; i < historyList.length; i++) {
+        var txn = historyList[i];
+        var cls = txn.type === "PRODUCTION" ? "prod" : (txn.type === "DISPATCH" ? "disp" : "sale");
+        var icon = txn.type === "PRODUCTION" ? "⬆ PRODUCTION" : (txn.type === "DISPATCH" ? "⬇ DISPATCH" : "🛍️ SALE");
+        var sign = txn.type === "PRODUCTION" ? "+" : "-";
+        var branchLine = txn.branch ? (" | Branch: " + txn.branch) : "";
+        var valueLine = txn.value ? (" | ₹" + Number(txn.value).toLocaleString('en-IN')) : "";
+        html += `<div class="txn-row"><div class="txn-left"><span class="txn-type-tag ${cls}">${icon}</span><span style="color:var(--text-soft); font-size:11px;">${txn.timestamp}${branchLine}${valueLine}</span></div><span class="txn-qty-change ${cls}">${sign}${txn.qty}</span></div>`;
+      }
+      box.innerHTML = html;
+    }
+
+    function backToGodownList() { $("godown-history-view").style.display = "none"; $("godown-list-view").style.display = "block"; }
+
+    /* ---- Records ---- */
+    var currentRecordsSheet = 'invlog';
+    function switchRecordsSheet(sheetKey) {
+      currentRecordsSheet = sheetKey;
+      ["invlog","verify"].forEach(function(k){ $("rec-tab-" + k).classList.toggle("active", k === sheetKey); });
+      $("rec-type-filter").style.display = sheetKey === 'invlog' ? "block" : "none";
+      if (sheetKey === 'invlog') handleRecTypeChange(); else $("rec-location-filter").disabled = false;
+      $("records-list").innerHTML = "Filters set — tap \"Load Records\" to view.";
+    }
+
+    // Production only ever happens at Savali Factory, so once "Production" is picked there's
+    // no other valid location to choose — auto-set it and lock the dropdown.
+    function handleRecTypeChange() {
+      var type = $("rec-type-filter").value;
+      var locSel = $("rec-location-filter");
+      if (type === 'PRODUCTION') { locSel.value = 'Savali Factory'; locSel.disabled = true; }
+      else locSel.disabled = false;
+    }
+
+    function loadRecordsData() {
+      var location = $("rec-location-filter").value, search = $("rec-search-input").value, type = $("rec-type-filter").value;
+      $("records-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading records...", "");
+
+      if (currentRecordsSheet === 'invlog') {
+        google.script.run.withSuccessHandler(function(data){ renderInventoryLogRecords(data || []); setStatus("Loaded " + (data ? data.length : 0) + " rows.", "success"); })
+          .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getInventoryLogRawWeb({ type: type, branch: location === "All" ? "" : location, search: search });
+      } else {
+        google.script.run.withSuccessHandler(function(data){ renderVerifyRecords(data || []); setStatus("Loaded " + (data ? data.length : 0) + " rows.", "success"); })
+          .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getVerificationRawWeb({ branch: location === "All" ? "" : location, search: search });
+      }
+    }
+
+    function renderInventoryLogRecords(rows) {
+      var box = $("records-list");
+      if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
+      var html = "";
+      rows.forEach(function(r){
+        var cls = r.type === "PRODUCTION" ? "prod" : (r.type === "DISPATCH" ? "disp" : "sale");
+        var recTag = r.receivedStatus === "Pending" ? ' <span style="color:var(--terracotta); font-weight:700;">(Pending)</span>' : (r.receivedStatus === "Received" ? ' <span style="color:var(--green); font-weight:700;">(Received)</span>' : '');
+        html += `<div class="txn-row"><div class="txn-left"><span class="txn-type-tag ${cls}">${r.type}</span><span style="color:var(--text-soft); font-size:11px;">${r.timestamp} | ${r.product}${r.branch ? ' | ' + r.branch : ''}${recTag}</span></div><span class="txn-qty-change ${cls}">${r.qty}</span></div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function renderVerifyRecords(rows) {
+      var box = $("records-list");
+      if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
+      var html = "";
+      rows.forEach(function(r){
+        var statusClass = 'status-' + String(r.status).replace(/ /g, '-');
+        html += `<div class="dash-row"><div class="dash-row-top"><span class="dash-row-name">${r.item}</span><span class="dash-row-loc">${r.branch}</span></div><div class="dash-row-figs"><span>${r.date}</span><span>${r.category || '—'}</span><span>Opening: <b>${r.opening === '' ? '—' : r.opening}</b></span><span>Dispatch: <b>${r.dispatch}</b></span><span>Sales: <b>${r.sales}</b></span><span>Expected: <b>${r.expected}</b></span><span>Actual: <b>${r.actual === '' ? '—' : r.actual}</b></span><span class="status-pill ${statusClass}">${r.status}</span></div></div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    /* ---- Links ---- */
+    var categoryLinksLoaded = false;
+    var cachedAppUrl = null;
+    function withAppUrl(cb) {
+      if (cachedAppUrl !== null) { cb(cachedAppUrl); return; }
+      google.script.run.withSuccessHandler(function(url){ cachedAppUrl = url || window.location.href.split('?')[0]; cb(cachedAppUrl); })
+        .withFailureHandler(function(){ cachedAppUrl = window.location.href.split('?')[0]; cb(cachedAppUrl); }).getAppUrlWeb();
+    }
+
+    function renderBranchDashboardLinksList() {
+      withAppUrl(function(base){
+        var box = $("branch-dashboard-links-list");
+        var html = "";
+        BRANCHES.forEach(function(loc){
+          var link = base + "?page=branch&branch=" + encodeURIComponent(loc);
+          html += '<div><b>' + loc + ':</b> <a href="' + link + '" target="_blank" style="color:var(--navy);">' + link + '</a></div>';
+        });
+        box.innerHTML = html;
+      });
+    }
+
+    function loadCategoryLinks() {
+      var box = $("category-links-list");
+      box.innerHTML = "Loading categories...";
+      google.script.run.withSuccessHandler(function(cats){
+        withAppUrl(function(base){
+          if (cats && cats.length > 0) {
+            var html = "";
+            cats.forEach(function(cat){
+              var link = base + "?page=production&category=" + encodeURIComponent(cat);
+              html += '<div><b>' + cat + ':</b> <a href="' + link + '" target="_blank" style="color:var(--navy);">' + link + '</a></div>';
+            });
+            box.innerHTML = html;
+            categoryLinksLoaded = true;
+          } else box.innerHTML = '<div style="color:#888;">No categories found in Master.</div>';
+        });
+      }).withFailureHandler(function(e){ box.innerHTML = '<div style="color:#888;">Could not load categories.</div>'; }).getCategoriesWeb();
+    }
+
+    function renderProductionDeskLink() {
+      withAppUrl(function(base){
+        var link = base + "?page=production";
+        $("production-desk-link").innerHTML = '<a href="' + link + '" target="_blank" style="color:var(--navy); font-weight:700;">' + link + '</a>';
+      });
+    }
+
+    function renderAdminDashboardLink() {
+      var box = $("admin-dashboard-link");
+      if (ADMIN_DASHBOARD_URL) box.innerHTML = '<a href="' + ADMIN_DASHBOARD_URL + '" target="_blank" style="color:var(--navy); font-weight:700;">' + ADMIN_DASHBOARD_URL + '</a>';
+      else box.innerHTML = 'Set ADMIN_DASHBOARD_URL at the top of the &lt;script&gt; block to show this link.';
+    }
+
+    /* ---- Admin ---- */
+    function setAdminStatus(msg, isError) { var el = $("admin-status"); el.textContent = msg; el.className = "status-msg-bar " + (isError ? "error" : "success"); }
+
+    function setupAllTriggersNow() {
+      setAdminStatus("Setting up trigger…", false);
+      google.script.run.withSuccessHandler(function(res){ setAdminStatus(res.message, !res.success); loadTriggerStatus(); })
+        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).setupAllTriggers();
+    }
+    function sendDailySummaryNow() {
+      setAdminStatus("Sending daily summary to owner…", false);
+      google.script.run.withSuccessHandler(function(res){ setAdminStatus(res.message, !res.success); })
+        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).dashboardSendDailySummaryNow();
+    }
+    function refreshProductCacheNow() {
+      setAdminStatus("Refreshing product cache…", false);
+      google.script.run.withSuccessHandler(function(){ setAdminStatus("Product cache refreshed.", false); })
+        .withFailureHandler(function(e){ setAdminStatus("Error: " + e.message, true); }).primeProductCache();
+    }
+
+    function loadTriggerStatus() {
+      google.script.run.withSuccessHandler(function(res){
+        $("trigger-status-hint").textContent = "Daily WhatsApp summary trigger: " + (res.dailySummaryActive ? "active" : "not set — tap \"Setup Daily Summary Trigger\"");
+      }).dashboardTriggerStatus();
+    }
+
+    function loadWhatsAppConfigStatus() {
+      google.script.run.withSuccessHandler(function(res){
+        var el = $("whatsapp-config-hint");
+        if (res.ready) el.textContent = 'WhatsApp (WATI) config looks ready.';
+        else {
+          var missing = [];
+          if (!res.endpointOk) missing.push('endpoint'); if (!res.tokenOk) missing.push('access token'); if (!res.templateOk) missing.push('template name');
+          el.textContent = 'WhatsApp (WATI) config incomplete: fill in ' + missing.join(', ') + ' in the WhatsApp_Config sheet.';
+        }
+      }).dashboardWhatsAppConfigStatus();
+    }
+
+    function loadDiagnostics() {
+      google.script.run.withSuccessHandler(function(d){
+        $("diag-content").innerHTML =
+          'Master rows: <b>' + d.masterRows + '</b> &nbsp;|&nbsp; ' +
+          'Inventory Log rows: <b>' + d.inventoryLogRows + '</b> &nbsp;|&nbsp; ' +
+          'Closing Stock history rows: <b>' + d.verificationRows + '</b> &nbsp;|&nbsp; ' +
+          'Sales months available: <b>' + (d.salesMonthsAvailable || []).join(", ") + '</b><br>' +
+          'Recipes (FG count): <b>' + d.recipeFGCount + '</b> &nbsp;|&nbsp; ' +
+          'IMS materials: <b>' + d.imsMaterialRows + '</b> &nbsp;|&nbsp; ' +
+          'Item Name Correction rows: <b>' + d.itemNameCorrectionRows + '</b> &nbsp;|&nbsp; ' +
+          'Timezone: <b>' + d.scriptTimeZone + '</b>' +
+          (d.masterRows === 0 ? '<br><br>⚠ Master sheet has 0 rows — fill in Barcode/Item Name/Category/Unit/Sale_Rate/Cost_Rate.' : '') +
+          (d.inventoryLogRows === 0 ? '<br>⚠ Inventory Log has 0 rows — nothing will show until scans/manual entries are recorded via the Production/Dispatch Desk.' : '');
+      }).withFailureHandler(function(e){ $("diag-content").innerText = "System status error: " + e.message; }).getSystemStatusWeb();
+    }
+
+    window.addEventListener('DOMContentLoaded', function () {
+      switchTopTab('godown');
+    });
+  </script>
+</body>
+</html>
