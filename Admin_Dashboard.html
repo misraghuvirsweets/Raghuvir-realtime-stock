@@ -133,6 +133,7 @@
       <button class="top-tab-btn" id="top-tab-production" type="button" onclick="switchTopTab('production')">Production</button>
       <button class="top-tab-btn" id="top-tab-sales" type="button" onclick="switchTopTab('sales')">Sales (POS)</button>
       <button class="top-tab-btn" id="top-tab-closing" type="button" onclick="switchTopTab('closing')">Closing Stock</button>
+      <button class="top-tab-btn" id="top-tab-rawmat" type="button" onclick="switchTopTab('rawmat')">Raw Materials</button>
     </div>
     <p style="text-align:center; font-size:12px; color:var(--text-soft); margin:0 0 14px;">Godown, Records, Links, and Admin now live on their own page — <a href="MIS_Dashboard.html" target="_blank" style="color:var(--navy); font-weight:700;">open MIS Dashboard</a>.</p>
 
@@ -179,6 +180,7 @@
       <div class="panel-head">✅ Closing Stock — Actual vs System-Generated</div>
       <div class="panel-body">
         <p style="font-size:12px; color:var(--text-soft); margin:0;">System-Generated Closing = Opening Stock (previous date's closing) + Dispatch Received (this date) − Sales Sold (this date), compared against the Actual Closing your branch staff enter on the <b>Ram Mandir / Vishrambagh</b> sheet tabs. Computed fresh every time you load this tab — never a stale cached figure.</p>
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Note on <b>Savali Factory</b> rows: fully system-calculated (no manual closing count exists there) — the Dispatch column shows today's Production (adds to stock) and the Sales column shows today's Dispatch sent out to branches (subtracts). Status shows System Calculated instead of OK/Mismatch since there is no independent count to verify against.</p>
         <button class="master-btn" type="button" style="width:100%;" onclick="regenerateVerifyForDate()" title="Force-recompute this date from scratch">↻ Recompute This Date</button>
         <div class="formula-banner" id="v-formulaBanner"></div>
         <div class="summary" id="v-summary"></div>
@@ -194,6 +196,36 @@
             </tr></thead>
             <tbody id="v-tableBody"><tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============== RAW MATERIALS (IMS live stock + consumption log) =============== -->
+    <div class="panel" id="view-rawmat" hidden>
+      <div class="panel-head">🧂 Raw Materials — Live Stock &amp; Consumption Log</div>
+      <div class="panel-body">
+        <div class="sub-tab-row">
+          <button class="sub-tab-btn active" id="rawmat-tab-stock" type="button" onclick="switchRawMatTab('stock')">Live Stock (IMS)</button>
+          <button class="sub-tab-btn" id="rawmat-tab-log" type="button" onclick="switchRawMatTab('log')">Consumption Log</button>
+        </div>
+
+        <div id="rawmat-view-stock">
+          <p style="font-size:12px; color:var(--text-soft); margin:0;">Current stock per raw material, straight from the IMS sheet. Deducted automatically whenever a Production entry matches a recipe.</p>
+          <div class="filter-row">
+            <input id="rawmat-search-input" class="filter-input search-input" type="text" placeholder="Search material name..." oninput="filterRawMatStock(this.value)">
+            <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadRawMatStock()">🔄 Refresh</button>
+          </div>
+          <div id="rawmat-stock-list" class="scroll-box grid-box">Tap "Refresh" to load.</div>
+        </div>
+
+        <div id="rawmat-view-log" style="display:none;">
+          <p style="font-size:12px; color:var(--text-soft); margin:0;">Every raw-material deduction, most recent first — which finished good triggered it, quantity consumed, and stock before/after.</p>
+          <div class="filter-row">
+            <input id="rawmat-log-search-input" class="filter-input search-input" type="text" placeholder="Search material name...">
+            <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadRawMatLog()">🔄 Load Log</button>
+          </div>
+          <label class="history-section-label">Showing most recent 300 rows matching your filter</label>
+          <div id="rawmat-log-list" class="scroll-box" style="max-height:480px;">Tap "Load Log" to view.</div>
         </div>
       </div>
     </div>
@@ -298,14 +330,17 @@
     function setStatus(msg, cls) { var bar = $("global-status"); bar.innerText = msg; bar.className = "status-msg-bar " + (cls || ""); }
 
     /* ======================= TOP-LEVEL TAB SWITCHING ======================= */
-    var TOP_TABS = ["dispatch","production","sales","closing"];
+    var TOP_TABS = ["dispatch","production","sales","closing","rawmat"];
     var globalFiltersLoaded = false;
+    var rawMatInitDone = false;
 
     function switchTopTab(tab) {
       TOP_TABS.forEach(function(t){
         $("top-tab-" + t).classList.toggle("active", t === tab);
         $("view-" + t).hidden = (t !== tab);
       });
+      $("global-filter-bar").style.display = (tab === 'rawmat') ? 'none' : 'flex';
+      if (tab === 'rawmat') { if (!rawMatInitDone) { rawMatInitDone = true; loadRawMatStock(); } return; }
       if (!globalFiltersLoaded) loadGlobalFilters(function(){ reloadActiveDataTab(tab); });
       else reloadActiveDataTab(tab);
     }
@@ -451,6 +486,59 @@
         })
         .withFailureHandler(function(err){ setStatus("Regenerate error: " + err.message, "error"); })
         .dashboardRunForDate(dateStr);
+    }
+
+    /* ======================= RAW MATERIALS (IMS live stock + consumption log) ======================= */
+    var rawMatStockCache = [];
+
+    function switchRawMatTab(tab) {
+      ["stock","log"].forEach(function(t){ $("rawmat-tab-" + t).classList.toggle("active", t === tab); });
+      $("rawmat-view-stock").style.display = (tab === 'stock') ? "block" : "none";
+      $("rawmat-view-log").style.display = (tab === 'log') ? "block" : "none";
+    }
+
+    function loadRawMatStock() {
+      $("rawmat-stock-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading raw material stock...", "");
+      google.script.run.withSuccessHandler(function(data){
+        rawMatStockCache = data || []; filterRawMatStock($("rawmat-search-input").value);
+        setStatus("Loaded " + rawMatStockCache.length + " material(s).", "success");
+      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getIMSStockWeb();
+    }
+
+    function filterRawMatStock(query) {
+      var q = (query || "").trim().toLowerCase();
+      var list = !q ? rawMatStockCache : rawMatStockCache.filter(function(m){
+        return (m.name && m.name.toLowerCase().indexOf(q) !== -1) || (m.category && m.category.toLowerCase().indexOf(q) !== -1);
+      });
+      var box = $("rawmat-stock-list");
+      if (!list.length) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No materials found.</div>'; return; }
+      var html = "";
+      list.forEach(function(m){
+        var lowFlag = m.stock <= 0;
+        html += `<div class="dash-row"><div class="dash-row-top"><span class="dash-row-name">${m.name}</span><span class="dash-row-loc">${m.category || '—'}</span></div><div class="dash-row-figs"><span>Current Stock: <b style="${lowFlag ? 'color:var(--terracotta);' : ''}">${m.stock}</b></span></div></div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function loadRawMatLog() {
+      var search = $("rawmat-log-search-input").value;
+      $("rawmat-log-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading consumption log...", "");
+      google.script.run.withSuccessHandler(function(rows){
+        renderRawMatLog(rows || []); setStatus("Loaded " + (rows ? rows.length : 0) + " row(s).", "success");
+      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getRawMaterialLogRawWeb({ search: search });
+    }
+
+    function renderRawMatLog(rows) {
+      var box = $("rawmat-log-list");
+      if (!rows.length) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
+      var html = "";
+      rows.forEach(function(r){
+        var negFlag = (typeof r.stockAfter === 'number' && r.stockAfter < 0) ? ' style="color:var(--terracotta);"' : '';
+        html += `<div class="txn-row"><div class="txn-left"><span class="txn-type-tag" style="color:var(--navy);">${r.material}</span><span style="color:var(--text-soft); font-size:11px;">${r.timestamp} | From: ${r.fgBreakdown || '—'} | Before: ${r.stockBefore} → After: <b${negFlag}>${r.stockAfter}</b>${r.note ? ' | ' + r.note : ''}</span></div><span class="txn-qty-change disp">-${r.qtyConsumed} ${r.unit || ''}</span></div>`;
+      });
+      box.innerHTML = html;
     }
 
     window.addEventListener('DOMContentLoaded', function () {
