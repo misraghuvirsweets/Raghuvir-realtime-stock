@@ -188,10 +188,10 @@
           <table class="verify-table" id="v-dataTable">
             <thead><tr>
               <th>Branch</th><th>Item</th><th>Category</th>
-              <th>Opening Stock<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of Previous Date)</span></th>
-              <th>Dispatch</th><th>Sales</th>
+              <th>Opening Stock<br><span id="v-th-opening-sub" style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of Previous Date)</span></th>
+              <th id="v-th-dispatch">Dispatch</th><th id="v-th-sales">Sales</th>
               <th>System-Generated<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">Closing</span></th>
-              <th>Actual Closing<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of This Date)</span></th>
+              <th>Actual Closing<br><span id="v-th-actual-sub" style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of This Date)</span></th>
               <th>Variance</th><th>Status</th>
             </tr></thead>
             <tbody id="v-tableBody"><tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
@@ -419,12 +419,36 @@
     /* ======================= CLOSING STOCK TAB (real-time, was "Verification") ======================= */
     var allVRows = [];
 
+    function formatDisplayDate_(dateStr) {
+      var d = new Date(dateStr + 'T00:00:00');
+      var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return String(d.getDate()).padStart(2,'0') + '-' + months[d.getMonth()] + '-' + d.getFullYear();
+    }
+
     function updateVerifyBanner() {
       var dateStr = $("g-dateFilter").value;
+      var branchFilter = $("g-branchFilter").value;
       if (!dateStr) { $("v-formulaBanner").innerText = ""; return; }
       var d = new Date(dateStr); var prev = new Date(d.getTime()); prev.setDate(prev.getDate() - 1);
       var prevStr = prev.getFullYear() + '-' + String(prev.getMonth()+1).padStart(2,'0') + '-' + String(prev.getDate()).padStart(2,'0');
-      $("v-formulaBanner").innerText = 'Opening Stock (Closing of ' + prevStr + ')  +  Dispatch Received (' + dateStr + ')  −  Sales Sold (' + dateStr + ')  =  System-Generated Closing (' + dateStr + ')';
+      var prevDisplay = formatDisplayDate_(prevStr), todayDisplay = formatDisplayDate_(dateStr);
+
+      $("v-th-opening-sub").textContent = '(Yesterday, ' + prevDisplay + ')';
+      $("v-th-actual-sub").textContent = '(Today, ' + todayDisplay + ')';
+
+      if (branchFilter === 'Savali Factory') {
+        // Savali Factory has no manual closing count — it's fully derived from Inventory_Log,
+        // so "Dispatch"/"Sales" here actually mean Production (in) / Dispatch out (out), not
+        // the branch meaning of "dispatch received"/"sales sold". Relabel so it's unambiguous
+        // instead of relying on a small print note elsewhere on the page.
+        $("v-th-dispatch").textContent = 'Production';
+        $("v-th-sales").textContent = 'Dispatch (Out)';
+        $("v-formulaBanner").innerText = 'Savali Factory — Opening Stock (Yesterday, ' + prevDisplay + ', after Production − Dispatch)  +  Production (' + todayDisplay + ')  −  Dispatch Out (' + todayDisplay + ')  =  System-Generated Closing (' + todayDisplay + '). No manual count exists for the factory, so Actual always equals this calculated figure.';
+      } else {
+        $("v-th-dispatch").textContent = 'Dispatch';
+        $("v-th-sales").textContent = 'Sales';
+        $("v-formulaBanner").innerText = 'Opening Stock (Closing of ' + prevDisplay + ')  +  Dispatch Received (' + todayDisplay + ')  −  Sales Sold (' + todayDisplay + ')  =  System-Generated Closing (' + todayDisplay + ')';
+      }
     }
 
     function loadVerifyData(dateStr) {
@@ -533,11 +557,16 @@
     function renderRawMatLog(rows) {
       var box = $("rawmat-log-list");
       if (!rows.length) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
-      var html = "";
+      var html = '<div class="table-wrap"><table class="verify-table"><thead><tr>' +
+        '<th>Timestamp</th><th>Material</th><th>From (FG Breakdown)</th><th>Qty Consumed</th><th>Unit</th><th>Stock Before</th><th>Stock After</th><th>Note</th>' +
+        '</tr></thead><tbody>';
       rows.forEach(function(r){
-        var negFlag = (typeof r.stockAfter === 'number' && r.stockAfter < 0) ? ' style="color:var(--terracotta);"' : '';
-        html += `<div class="txn-row"><div class="txn-left"><span class="txn-type-tag" style="color:var(--navy);">${r.material}</span><span style="color:var(--text-soft); font-size:11px;">${r.timestamp} | From: ${r.fgBreakdown || '—'} | Before: ${r.stockBefore} → After: <b${negFlag}>${r.stockAfter}</b>${r.note ? ' | ' + r.note : ''}</span></div><span class="txn-qty-change disp">-${r.qtyConsumed} ${r.unit || ''}</span></div>`;
+        var negFlag = (typeof r.stockAfter === 'number' && r.stockAfter < 0) ? ' style="color:var(--terracotta); font-weight:700;"' : '';
+        html += '<tr><td>' + r.timestamp + '</td><td>' + r.material + '</td><td>' + (r.fgBreakdown || '—') + '</td>' +
+          '<td>' + r.qtyConsumed + '</td><td>' + (r.unit || '') + '</td><td>' + r.stockBefore + '</td>' +
+          '<td' + negFlag + '>' + r.stockAfter + '</td><td>' + (r.note || '—') + '</td></tr>';
       });
+      html += '</tbody></table></div>';
       box.innerHTML = html;
     }
 
