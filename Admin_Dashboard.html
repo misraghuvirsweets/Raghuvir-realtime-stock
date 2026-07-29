@@ -1,464 +1,578 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<style>
-  :root{
-    --maroon:#6d2932; --maroon-dark:#4e1e25; --gold:#c98a2c; --bg:#faf6f1;
-    --ok:#2f8f4e; --warn:#c0392b; --card:#ffffff; --line:#e7ddd2;
-  }
-  *{box-sizing:border-box;}
-  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:#2a2a2a;}
-  header{background:var(--maroon);color:#fff;padding:14px 16px;text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,.15);}
-  header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.3px;}
-  header p{margin:2px 0 0;font-size:11px;opacity:.85;}
-  .tabs{display:flex;background:var(--maroon-dark);position:sticky;top:52px;z-index:9;}
-  .tab{flex:1;text-align:center;padding:11px 4px;font-size:13px;color:#f0d9d2;cursor:pointer;border-bottom:3px solid transparent;}
-  .tab.active{color:#fff;border-bottom:3px solid var(--gold);font-weight:600;}
-  .page{display:none;padding:14px;max-width:520px;margin:0 auto;}
-  .page.active{display:block;}
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raghuvir Sweets & Bakers — Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght=600&family=Inter:wght=400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#F3EDE2; --surface:#FFFFFF; --text:#261E16; --text-soft:#706254; --border:#DFD2BF;
+      --navy:#2C4A5E; --navy-soft:#DCE6EA; --gold:#96731E; --gold-soft:#F3E7C9;
+      --green:#3D5E26; --green-soft:#DFE8D5; --terracotta:#A63C19; --terracotta-soft:#F5DFD6;
+      --radius:16px;
+    }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
+    .wrap{ width:100%; max-width:1180px; margin:0 auto; padding:16px 14px 48px; }
 
-  /* ---- Home screen ---- */
-  #pageHome{padding:28px 20px;max-width:560px;margin:0 auto;}
-  .home-title{font-size:24px;font-weight:700;color:#2a1a15;text-align:center;margin:10px 0 4px;font-family:Georgia,'Times New Roman',serif;}
-  .home-subtitle{font-size:14px;color:#8a7a6d;text-align:center;margin:0 0 30px;}
-  .big-btn{
-    display:block;width:100%;padding:26px 18px;margin-bottom:22px;border:none;border-radius:16px;
-    font-size:22px;font-weight:700;color:#fff;cursor:pointer;text-align:center;
-    box-shadow:0 3px 8px rgba(0,0,0,.15);transition:transform .08s ease, box-shadow .08s ease;
-  }
-  .big-btn:active{transform:scale(0.98);box-shadow:0 1px 4px rgba(0,0,0,.15);}
-  .big-btn.stock-in{background:#3f6b2e;}
-  .big-btn.stock-out{background:#a8421f;}
-  .back-link{display:inline-block;margin-bottom:12px;color:var(--maroon);font-weight:600;font-size:14px;cursor:pointer;}
-  .back-link:active{opacity:.6;}
+    header{ text-align:center; margin-bottom:16px; }
+    header h1{ font-family:'Fraunces',serif; font-size:clamp(20px,4vw,28px); font-weight:600; margin:0; color:var(--text); }
+    header p{ margin:3px 0 0; font-size:13px; color:var(--text-soft); font-weight:500; }
 
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
-  label{font-size:12px;font-weight:600;color:#6b5c50;display:block;margin-bottom:5px;}
-  select, input[type=text], input[type=number]{
-    width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;font-size:15px;margin-bottom:10px;background:#fff;
-  }
-  select:focus, input:focus{outline:none;border-color:var(--gold);}
-  button{
-    width:100%;padding:12px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;
-  }
-  .btn-primary{background:var(--maroon);color:#fff;}
-  .btn-primary:active{background:var(--maroon-dark);}
-  .btn-secondary{background:#efe6db;color:var(--maroon-dark);margin-bottom:10px;}
-  .btn-submit{background:var(--gold);color:#3a2508;}
-  .btn-submit:disabled{opacity:.5;}
-  #reader{width:100%;border-radius:10px;overflow:hidden;margin-bottom:10px;display:none;}
-  .item-box{border:1px dashed var(--gold);background:#fff8ec;border-radius:10px;padding:10px 12px;margin-bottom:10px;display:none;}
-  .item-box .name{font-weight:700;font-size:15px;color:var(--maroon-dark);}
-  .item-box .meta{font-size:12px;color:#777;margin-top:2px;}
-  .msg{font-size:13px;padding:10px 12px;border-radius:8px;margin-bottom:10px;display:none;}
-  .msg.ok{background:#e7f6ea;color:var(--ok);display:block;}
-  .msg.err{background:#fdecea;color:var(--warn);display:block;}
-  .stats{display:flex;gap:10px;flex-wrap:wrap;}
-  .stat{flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;}
-  .stat .num{font-size:22px;font-weight:700;color:var(--maroon);}
-  .stat .lbl{font-size:11px;color:#777;margin-top:2px;}
-  table{width:100%;border-collapse:collapse;font-size:12.5px;}
-  th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);}
-  th{color:#8a7a6d;font-weight:600;}
-  .lowstock{color:var(--warn);font-weight:700;}
-  .section-title{font-size:13px;font-weight:700;color:var(--maroon-dark);margin:14px 0 8px;}
-  .queue-row-del{background:none;border:none;color:var(--warn);font-weight:700;width:auto;padding:2px 8px;cursor:pointer;}
-  .queue-empty{font-size:12px;color:#999;padding:6px 0;}
-  .queue-summary{font-size:12px;color:#6b5c50;margin-bottom:8px;}
-  .spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-</style>
+    .panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.04); margin-bottom:16px; }
+    .panel-head{ display:flex; align-items:center; gap:8px; padding:14px 16px; font-family:'Fraunces',serif; font-size:17px; font-weight:600; border-bottom:1px solid var(--border); background:var(--navy-soft); color:var(--navy); }
+    .panel-body{ padding:16px; display:flex; flex-direction:column; gap:12px; }
+
+    .top-tab-row{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+    .top-tab-btn{
+      flex:1 1 110px; padding:12px 4px; border-radius:12px; font-size:13px; font-weight:700;
+      font-family:inherit; cursor:pointer; border:2px solid var(--navy); background:#fff; color:var(--navy);
+    }
+    .top-tab-btn.active{ background:var(--navy); color:#fff; }
+
+    .sub-tab-row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .sub-tab-btn{ padding:9px 14px; border-radius:9px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; border:2px solid var(--gold); background:#fff; color:var(--gold); }
+    .sub-tab-btn.active{ background:var(--gold); color:#fff; }
+
+    .filter-row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .filter-select, .filter-input{
+      flex:1 1 160px; padding:10px 10px; border:1px solid var(--border); border-radius:10px;
+      font-size:13px; font-family:inherit; background:#fff; color:var(--text); outline:none;
+    }
+    .filter-row input[type=date]{ flex:1 1 160px; padding:10px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px; }
+    .search-input{ width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; background:#fff; color:var(--text); outline:none; }
+
+    .master-btn { width:100%; padding:14px; border:none; border-radius:10px; font-size:14.5px; font-weight:700; font-family:inherit; color:#fff; cursor:pointer; background:var(--navy); box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+    .master-btn:active { opacity:0.92; transform:translateY(1px); }
+    .master-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+    @media (min-width:700px){ .master-btn{ width:auto; padding:12px 28px; align-self:flex-start; } }
+
+    .history-section-label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-soft); font-weight:700; margin-top:4px; }
+    .scroll-box { border:1px solid var(--border); border-radius:12px; background:#FAF7F2; max-height:440px; overflow-y:auto; padding:2px 12px; }
+    @media (min-width:760px){
+      .scroll-box.grid-box{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; padding:12px; align-content:start; }
+      .scroll-box.grid-box .dash-row, .scroll-box.grid-box .history-row{ border:1px solid var(--border); border-radius:10px; padding:12px; background:#fff; border-bottom:1px solid var(--border); }
+    }
+
+    .status-msg-bar{ min-height:18px; font-size:13px; font-weight:600; text-align:center; }
+    .status-msg-bar.success{ color:var(--green); }
+    .status-msg-bar.error{ color:var(--terracotta); }
+
+    .dash-row{ display:flex; flex-direction:column; gap:6px; font-size:13px; padding:11px 0; border-bottom:1px dashed var(--border); }
+    .dash-row:last-child{ border-bottom:none; }
+    .dash-row-top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    .dash-row-name{ font-weight:700; color:var(--text); font-size:14px; }
+    .dash-row-loc{ font-size:10.5px; color:var(--navy); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--navy-soft); padding:2px 7px; border-radius:6px; white-space:nowrap; }
+    .dash-row-figs{ display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--text-soft); }
+    .dash-row-figs b{ color:var(--text); }
+    .dash-row-value{ font-weight:700; color:var(--gold); font-size:13px; }
+    .dash-row-flag{ font-size:11px; color:var(--terracotta); font-weight:700; }
+    .dash-row-info{ font-size:11px; color:var(--navy); font-weight:600; }
+
+    .stock-row{ cursor:pointer; }
+    .stock-row:active{ opacity:0.7; }
+    .stock-badge{ font-weight:700; color:var(--navy); background:#EAF1F4; padding:5px 10px; border-radius:8px; font-size:14px; min-width:34px; text-align:center; }
+    .stock-badge.low{ color:#9E2F11; background:#F5DFD6; }
+    .chevron-icon{ color:var(--text-soft); font-size:14px; }
+    .history-row { display:flex; justify-content:space-between; align-items:center; font-size:13.5px; padding:11px 0; border-bottom:1px dashed var(--border); gap:8px; }
+    .history-row:last-child { border-bottom:none; }
+    .history-left { display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .history-left strong{ overflow-wrap:anywhere; }
+    .history-right { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+
+    #history-view{ display:none; flex-direction:column; gap:12px; }
+    .back-btn{ border:none; background:none; font-size:14px; cursor:pointer; color:var(--navy); padding:2px 0; font-weight:700; align-self:flex-start; }
+    .history-item-header{ background:var(--navy-soft); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
+    .history-item-header strong{ font-family:'Fraunces',serif; font-size:17px; color:var(--navy); }
+    .history-item-header span{ font-size:12px; color:var(--text-soft); font-weight:600; }
+    .txn-row{ display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:10px 0; border-bottom:1px dashed var(--border); gap:8px; }
+    .txn-row:last-child{ border-bottom:none; }
+    .txn-left{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .txn-type-tag{ font-weight:700; font-size:13px; }
+    .txn-type-tag.prod{ color:var(--green); } .txn-type-tag.disp{ color:var(--terracotta); } .txn-type-tag.sale{ color:var(--gold); }
+    .txn-qty-change{ font-weight:700; font-size:14px; padding:4px 9px; border-radius:6px; flex-shrink:0; }
+    .txn-qty-change.prod{ color:var(--green); background:var(--green-soft); }
+    .txn-qty-change.disp{ color:var(--terracotta); background:var(--terracotta-soft); }
+    .txn-qty-change.sale{ color:var(--gold); background:var(--gold-soft); }
+
+    .diag-line{ font-size:12px; color:var(--text-soft); line-height:1.7; }
+    .diag-line b{ color:var(--navy); }
+
+    /* ---- pivot tables (Dispatch / Production / Sales) + Closing Stock table ---- */
+    .formula-banner{ padding:12px 14px; background:#fff8f0; border:1px dashed var(--gold); border-radius:8px; font-size:13px; color:#5a3a1a; font-weight:600; }
+    .summary{ display:flex; flex-wrap:wrap; gap:10px; }
+    .card{ flex:1; min-width:110px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 14px; text-align:center; }
+    .card .num{ font-size:22px; font-weight:700; }
+    .card .lbl{ font-size:11px; color:#777; margin-top:2px; }
+    table.verify-table{ width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; font-size:13px; min-width:640px; }
+    table.verify-table th, table.verify-table td{ padding:9px 10px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+    table.verify-table th{ background:#faf5f0; font-size:11px; text-transform:uppercase; letter-spacing:.3px; color:#666; }
+    tr.mismatch{ background:#fdecea; }
+    tr.noentry{ background:#f2f2f2; color:#888; }
+    .status-pill{ padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .status-OK{ background:#eafaf1; color:var(--green); }
+    .status-MISMATCH{ background:#fdecea; color:var(--terracotta); }
+    .status-No-Closing-Entry,.status-No-Opening-Data{ background:#eee; color:#7f8c8d; }
+    .status-Unknown{ background:#eee; color:#7f8c8d; }
+    .table-wrap{ overflow-x:auto; }
+    #global-filter-bar{ margin-bottom:14px; }
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <header>
+      <h1>Raghuvir Sweets & Bakers</h1>
+      <p>Admin Dashboard — real-time, no nightly batch jobs</p>
+    </header>
 
-<header>
-  <h1>🍬 RAGHUVIR SWEETS &amp; BAKERS</h1>
-  <p>Godown Dashboard <span id="settingsGear" onclick="openSettings()" style="cursor:pointer;">⚙️</span></p>
-</header>
+    <div class="top-tab-row">
+      <button class="top-tab-btn active" id="top-tab-dispatch" type="button" onclick="switchTopTab('dispatch')">Dispatch</button>
+      <button class="top-tab-btn" id="top-tab-production" type="button" onclick="switchTopTab('production')">Production</button>
+      <button class="top-tab-btn" id="top-tab-sales" type="button" onclick="switchTopTab('sales')">Sales (POS)</button>
+      <button class="top-tab-btn" id="top-tab-closing" type="button" onclick="switchTopTab('closing')">Closing Stock</button>
+      <button class="top-tab-btn" id="top-tab-rawmat" type="button" onclick="switchTopTab('rawmat')">Raw Materials</button>
+    </div>
+    <p style="text-align:center; font-size:12px; color:var(--text-soft); margin:0 0 14px;">Godown, Records, Links, and Admin now live on their own page — <a href="MIS_Dashboard.html" target="_blank" style="color:var(--navy); font-weight:700;">open MIS Dashboard</a>.</p>
 
-<div class="card" id="settingsCard" style="display:none;margin:14px;">
-  <label>Your Apps Script Web App URL (one-time setup)</label>
-  <input type="text" id="apiUrlInput" placeholder="https://script.google.com/macros/s/XXXXX/exec">
-  <button class="btn-primary" onclick="saveApiUrl()">💾 Save URL</button>
-  <p style="font-size:11px;color:#888;margin-top:8px;">
-    Find this under Apps Script → Deploy → Manage deployments → copy the Web app URL. It's saved
-    only in this browser, so you'll enter it once per device.
-  </p>
-</div>
-
-<!-- ================= HOME PAGE ================= -->
-<div class="page active" id="pageHome">
-  <div class="home-title">Raghuvir Sweets &amp; Bakers</div>
-  <div class="home-subtitle">Godown Dashboard</div>
-  <button class="big-btn stock-in" onclick="showPage('pageIn')">📥 Stock In</button>
-  <button class="big-btn stock-out" onclick="showPage('pageOut')">📤 Stock Out</button>
-</div>
-
-<!-- ================= INWARD PAGE ================= -->
-<div class="page" id="pageIn">
-  <div class="card">
-    <span class="back-link" onclick="showPage('pageHome')">← Back</span>
-    <label>Scan or type SKU / Barcode</label>
-    <input type="text" id="inSku" placeholder="Scan here, or type SKU and press Enter" autocomplete="off">
-    <button class="btn-secondary" onclick="toggleCamera('in')">📷 Use Camera Scanner</button>
-    <div id="reader-in" class="reader-slot" style="display:none;"><div id="reader"></div></div>
-
-    <div class="msg" id="inMsg"></div>
-    <div class="item-box" id="inItemBox">
-      <div class="name" id="inItemName"></div>
-      <div class="meta" id="inItemMeta"></div>
+    <!-- Shared filter bar — drives Dispatch / Production / Sales / Closing Stock. Hidden on MIS Dashboard. -->
+    <div class="filter-row" id="global-filter-bar">
+      <select id="g-branchFilter" class="filter-select"><option value="All">All Branches</option></select>
+      <select id="g-categoryFilter" class="filter-select"><option value="All">All Categories</option></select>
+      <input type="date" id="g-dateFilter" class="filter-input">
+      <button class="master-btn" type="button" style="flex:1 1 130px;" onclick="reloadActiveDataTab()">🔄 Load</button>
     </div>
 
-    <label>Quantity Received</label>
-    <input type="number" id="inQty" placeholder="e.g. 10" min="1">
-    <label>📷 Photo (optional)</label>
-    <input type="file" accept="image/*" capture="environment" id="inPhotoInput" style="display:none;" onchange="handlePhotoCapture('in', this)">
-    <button class="btn-secondary" onclick="document.getElementById('inPhotoInput').click()">📷 Capture Photo</button>
-    <img id="inPhotoPreview" style="display:none;max-width:100%;border-radius:8px;margin-bottom:10px;">
-    <button class="btn-submit" id="inSubmitBtn" disabled onclick="addToQueue('in')">➕ Add Entry</button>
-  </div>
-
-  <div class="card">
-    <div class="section-title">📋 Entries to Submit</div>
-    <div class="queue-summary" id="inQueueSummary">No entries added yet.</div>
-    <table id="inQueueTable"></table>
-    <button class="btn-primary" id="inFinalSubmitBtn" disabled onclick="finalSubmit('in')" style="margin-top:10px;">✅ Final Submit</button>
-  </div>
-</div>
-
-<!-- ================= OUTWARD PAGE ================= -->
-<div class="page" id="pageOut">
-  <div class="card">
-    <span class="back-link" onclick="showPage('pageHome')">← Back</span>
-    <label>🏬 Branch <span class="back-link" style="margin:0 0 0 8px;font-size:12px;" onclick="loadBranches()">🔄 Retry</span></label>
-    <select id="outBranch"><option value="">Loading branches…</option></select>
-
-    <label>Scan or type SKU / Barcode</label>
-    <input type="text" id="outSku" placeholder="Scan here, or type SKU and press Enter" autocomplete="off">
-    <button class="btn-secondary" onclick="toggleCamera('out')">📷 Use Camera Scanner</button>
-    <div id="reader-out" class="reader-slot" style="display:none;"><div id="reader2"></div></div>
-
-    <div class="msg" id="outMsg"></div>
-    <div class="item-box" id="outItemBox">
-      <div class="name" id="outItemName"></div>
-      <div class="meta" id="outItemMeta"></div>
+    <!-- =============== DISPATCH (item x branch, pivoted) =============== -->
+    <div class="panel" id="view-dispatch">
+      <div class="panel-head">🚚 Dispatch — Item Wise, By Branch</div>
+      <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Every dispatch recorded on the selected date, one row per item, with quantity shown per branch it went to. Computed live from Inventory_Log — always current.</p>
+        <div id="dispatch-status" class="status-msg-bar"></div>
+        <div id="dispatch-table-box">Pick filters above and tap "Load".</div>
+      </div>
     </div>
 
-    <label>Quantity Going Out</label>
-    <input type="number" id="outQty" placeholder="e.g. 5" min="1">
-    <label>📷 Photo (optional)</label>
-    <input type="file" accept="image/*" capture="environment" id="outPhotoInput" style="display:none;" onchange="handlePhotoCapture('out', this)">
-    <button class="btn-secondary" onclick="document.getElementById('outPhotoInput').click()">📷 Capture Photo</button>
-    <img id="outPhotoPreview" style="display:none;max-width:100%;border-radius:8px;margin-bottom:10px;">
-    <button class="btn-submit" id="outSubmitBtn" disabled onclick="addToQueue('out')">➕ Add Entry</button>
+    <!-- =============== PRODUCTION (item x location, pivoted — always Savali Factory) =============== -->
+    <div class="panel" id="view-production" hidden>
+      <div class="panel-head">🏭 Production — Item Wise (Savali Factory)</div>
+      <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Production only ever happens at Savali Factory, so there's nothing to pick for branch here — every row is factory output for the selected date.</p>
+        <div id="production-status" class="status-msg-bar"></div>
+        <div id="production-table-box">Pick filters above and tap "Load".</div>
+      </div>
+    </div>
+
+    <!-- =============== SALES (POS), item x branch, pivoted =============== -->
+    <div class="panel" id="view-sales" hidden>
+      <div class="panel-head">🛍️ Sales — Item Wise, By Branch (from POS export)</div>
+      <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Sales pulled directly from the POS export sheet for the selected date, pivoted by branch.</p>
+        <div id="sales-status" class="status-msg-bar"></div>
+        <div id="sales-table-box">Pick filters above and tap "Load".</div>
+      </div>
+    </div>
+
+    <!-- =============== CLOSING STOCK (real-time — was "Verification") =============== -->
+    <div class="panel" id="view-closing" hidden>
+      <div class="panel-head">✅ Closing Stock — Actual vs System-Generated</div>
+      <div class="panel-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">System-Generated Closing = Opening Stock (previous date's closing) + Dispatch Received (this date) − Sales Sold (this date), compared against the Actual Closing your branch staff enter on the <b>Ram Mandir / Vishrambagh</b> sheet tabs. Computed fresh every time you load this tab — never a stale cached figure.</p>
+        <p style="font-size:12px; color:var(--text-soft); margin:0;">Note on <b>Savali Factory</b> rows: fully system-calculated (no manual closing count exists there) — the Dispatch column shows today's Production (adds to stock) and the Sales column shows today's Dispatch sent out to branches (subtracts). Status shows System Calculated instead of OK/Mismatch since there is no independent count to verify against.</p>
+        <button class="master-btn" type="button" style="width:100%;" onclick="regenerateVerifyForDate()" title="Force-recompute this date from scratch">↻ Recompute This Date</button>
+        <div class="formula-banner" id="v-formulaBanner"></div>
+        <div class="summary" id="v-summary"></div>
+        <div class="table-wrap">
+          <table class="verify-table" id="v-dataTable">
+            <thead><tr>
+              <th>Branch</th><th>Item</th><th>Category</th>
+              <th>Opening Stock<br><span id="v-th-opening-sub" style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of Previous Date)</span></th>
+              <th id="v-th-dispatch">Dispatch</th><th id="v-th-sales">Sales</th>
+              <th>System-Generated<br><span style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">Closing</span></th>
+              <th>Actual Closing<br><span id="v-th-actual-sub" style="font-weight:400; font-size:9px; text-transform:none; letter-spacing:0;">(Closing Stock of This Date)</span></th>
+              <th>Variance</th><th>Status</th>
+            </tr></thead>
+            <tbody id="v-tableBody"><tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============== RAW MATERIALS (IMS live stock + consumption log) =============== -->
+    <div class="panel" id="view-rawmat" hidden>
+      <div class="panel-head">🧂 Raw Materials — Live Stock &amp; Consumption Log</div>
+      <div class="panel-body">
+        <div class="sub-tab-row">
+          <button class="sub-tab-btn active" id="rawmat-tab-stock" type="button" onclick="switchRawMatTab('stock')">Live Stock (IMS)</button>
+          <button class="sub-tab-btn" id="rawmat-tab-log" type="button" onclick="switchRawMatTab('log')">Consumption Log</button>
+        </div>
+
+        <div id="rawmat-view-stock">
+          <p style="font-size:12px; color:var(--text-soft); margin:0;">Current stock per raw material, straight from the IMS sheet. Deducted automatically whenever a Production entry matches a recipe.</p>
+          <div class="filter-row">
+            <input id="rawmat-search-input" class="filter-input search-input" type="text" placeholder="Search material name..." oninput="filterRawMatStock(this.value)">
+            <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadRawMatStock()">🔄 Refresh</button>
+          </div>
+          <div id="rawmat-stock-list" class="scroll-box grid-box">Tap "Refresh" to load.</div>
+        </div>
+
+        <div id="rawmat-view-log" style="display:none;">
+          <p style="font-size:12px; color:var(--text-soft); margin:0;">Every raw-material deduction, most recent first — which finished good triggered it, quantity consumed, and stock before/after.</p>
+          <div class="filter-row">
+            <input id="rawmat-log-search-input" class="filter-input search-input" type="text" placeholder="Search material name...">
+            <button class="master-btn" type="button" style="flex:1 1 160px;" onclick="loadRawMatLog()">🔄 Load Log</button>
+          </div>
+          <label class="history-section-label">Showing most recent 300 rows matching your filter</label>
+          <div id="rawmat-log-list" class="scroll-box" style="max-height:480px;">Tap "Load Log" to view.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="global-status" class="status-msg-bar"></div>
   </div>
 
-  <div class="card">
-    <div class="section-title">📋 Entries to Submit</div>
-    <div class="queue-summary" id="outQueueSummary">No entries added yet.</div>
-    <table id="outQueueTable"></table>
-    <button class="btn-primary" id="outFinalSubmitBtn" disabled onclick="finalSubmit('out')" style="margin-top:10px;">✅ Final Submit</button>
-  </div>
-</div>
+  <script>
+    // ============================================================================
+    // ⚠️ EDIT THIS — paste your deployed Apps Script Web App URL (ends in /exec).
+    // Deploy: Apps Script editor → Deploy → New deployment → Web app → Execute as Me,
+    // Access: Anyone. Copy the resulting URL here.
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwFSBEAxxd1KQjYeeTBJZ86mABfH4ojsuyqXcLjMZ9NBfvUYJ9SS3nqmrMefEgDsU-w/exec';
+    // ============================================================================
+    //
+    // This page is hosted outside Apps Script (e.g. GitHub Pages), so it can't use
+    // google.script.run directly — that only works for HTML served BY Apps Script.
+    // This shim recreates the same google.script.run.functionName(args)
+    //   .withSuccessHandler(fn).withFailureHandler(fn)
+    // call pattern used throughout this file, but sends each call as a JSONP
+    // request (a dynamically-inserted <script> tag) to the deployed Web App,
+    // which routes it to the real server function via ?action=functionName.
+    // JSONP is used (not fetch) because Apps Script Web App responses don't
+    // include CORS headers, so a cross-origin fetch() would be blocked by the
+    // browser — a <script> tag isn't subject to that restriction.
+    (function () {
+      var callbackCounter = 0;
 
+      function jsonpCall(functionName, args, successHandler, failureHandler) {
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR_DEPLOYED') === 0) {
+          var msg = 'APPS_SCRIPT_URL is not set yet — paste your deployed /exec URL at the top of the <script> block.';
+          console.error(msg);
+          if (failureHandler) failureHandler({ message: msg });
+          return;
+        }
 
-<script>
-// ---------------- PAGE NAVIGATION ----------------
-function showPage(pageId) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(pageId).classList.add('active');
-  stopCamera();
-  if (pageId === 'pageIn') document.getElementById('inSku').focus();
-  if (pageId === 'pageOut') document.getElementById('outSku').focus();
-}
+        var callbackName = '__gs_cb_' + (callbackCounter++) + '_' + Date.now();
+        var script = document.createElement('script');
 
-// ---------------- API CONFIG (fetch-based, works on any normal HTTPS page) ----------------
-let API_URL = localStorage.getItem('ims_api_url') || '';
+        function cleanup() {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
 
-function openSettings() {
-  document.getElementById('apiUrlInput').value = API_URL;
-  document.getElementById('settingsCard').style.display = 'block';
-}
+        window[callbackName] = function (response) {
+          cleanup();
+          if (!response || response.__ok === false) {
+            var errMsg = (response && response.__error) || ('Unknown server error calling ' + functionName);
+            if (failureHandler) failureHandler({ message: errMsg }); else console.error(errMsg);
+            return;
+          }
+          if (successHandler) successHandler(response.result);
+        };
 
-function saveApiUrl() {
-  const url = document.getElementById('apiUrlInput').value.trim();
-  if (!url) { alert('Please paste your Web App URL.'); return; }
-  API_URL = url;
-  localStorage.setItem('ims_api_url', url);
-  document.getElementById('settingsCard').style.display = 'none';
-  initData();
-}
+        var url = APPS_SCRIPT_URL
+          + '?action=' + encodeURIComponent(functionName)
+          + '&callback=' + encodeURIComponent(callbackName)
+          + '&args=' + encodeURIComponent(JSON.stringify(args || []));
 
-// Sends Content-Type: text/plain so the browser treats it as a "simple request" and skips the
-// CORS preflight (OPTIONS) that Apps Script Web Apps don't handle - the JSON is still parsed
-// fine server-side via JSON.parse(e.postData.contents).
-function callApi(action, data) {
-  if (!API_URL) {
-    openSettings();
-    return Promise.reject(new Error('Please set your Web App URL first (⚙️ icon, top right).'));
-  }
-  return fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(Object.assign({ action: action }, data || {}))
-  }).then(r => r.json()).then(res => {
-    if (res && res.error) throw new Error(res.error);
-    return res;
-  });
-}
-
-// ---------------- INIT ----------------
-function initData() {
-  loadBranches();
-}
-
-function loadBranches() {
-  const sel = document.getElementById('outBranch');
-  sel.innerHTML = '<option value="">Loading branches…</option>';
-  callApi('getBranches').then(list => {
-    if (!list || !list.length) {
-      sel.innerHTML = '<option value="">⚠️ No active branches found - check Branches sheet</option>';
-      return;
-    }
-    populateBranches(list);
-  }).catch(err => {
-    sel.innerHTML = '<option value="">⚠️ Could not load - tap 🔄 Retry (' + err.message + ')</option>';
-  });
-}
-
-window.onload = function() {
-  if (!API_URL) openSettings(); else initData();
-
-  document.getElementById('inSku').addEventListener('keydown', e => { if (e.key === 'Enter') lookupSku('in'); });
-  document.getElementById('outSku').addEventListener('keydown', e => { if (e.key === 'Enter') lookupSku('out'); });
-};
-
-function populateBranches(list) {
-  const sel = document.getElementById('outBranch');
-  sel.innerHTML = '<option value="">-- Select Branch --</option>';
-  list.forEach(b => { const o = document.createElement('option'); o.value = b; o.textContent = b; sel.appendChild(o); });
-}
-
-// ---------------- CAMERA SCANNER ----------------
-let html5QrCode = null;
-let currentCameraMode = null;
-
-const READER_IDS = { in: 'reader', out: 'reader2' };
-const TARGET_FIELD = { in: 'inSku', out: 'outSku' };
-
-function toggleCamera(mode) {
-  const slot = document.getElementById('reader-' + mode);
-  if (slot.style.display === 'block') {
-    stopCamera();
-    return;
-  }
-  ['in', 'out'].forEach(m => { document.getElementById('reader-' + m).style.display = 'none'; });
-  if (html5QrCode) stopCamera();
-
-  slot.style.display = 'block';
-  currentCameraMode = mode;
-  html5QrCode = new Html5Qrcode(READER_IDS[mode]);
-  html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 220 },
-    (decodedText) => {
-      document.getElementById(TARGET_FIELD[mode]).value = decodedText;
-      stopCamera();
-      lookupSku(mode);
-    },
-    () => {} // ignore per-frame scan failures
-  ).catch(err => {
-    alert('Camera error: ' + err + '\\nYou can still type/scan into the text box with a USB scanner.');
-    slot.style.display = 'none';
-  });
-}
-
-function stopCamera() {
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; }).catch(() => {});
-  }
-  ['in', 'out'].forEach(m => { document.getElementById('reader-' + m).style.display = 'none'; });
-}
-
-// ---------------- LOOKUP ----------------
-function lookupSku(mode) {
-  const sku = document.getElementById(mode + 'Sku').value.trim();
-  if (!sku) return;
-  showMsg(mode, '', '');
-  callApi('lookupItem', { sku: sku }).then(res => showItem(mode, res)).catch(err => showMsg(mode, 'err', '❌ ' + err.message));
-}
-
-function showItem(mode, res) {
-  const box = document.getElementById(mode + 'ItemBox');
-  const submitBtn = document.getElementById(mode + 'SubmitBtn');
-  if (!res.found) {
-    box.style.display = 'none';
-    submitBtn.disabled = true;
-    showMsg(mode, 'err', '❌ SKU "' + res.sku + '" not found in Item_Master.');
-    return;
-  }
-  document.getElementById(mode + 'ItemName').textContent = res.name;
-  document.getElementById(mode + 'ItemMeta').textContent =
-    'SKU: ' + res.sku + '  |  Location: ' + res.location + '  |  Current stock: ' + res.currentStock;
-  box.style.display = 'block';
-  submitBtn.disabled = false;
-}
-
-function showMsg(mode, cls, text) {
-  const el = document.getElementById(mode + 'Msg');
-  el.className = 'msg' + (cls ? ' ' + cls : '');
-  el.textContent = text;
-  el.style.display = cls ? 'block' : 'none';
-}
-
-// ---------------- PHOTO CAPTURE ----------------
-const photoData = { in: null, out: null };
-
-function handlePhotoCapture(mode, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    resizeImage(e.target.result, 800, 0.7, function(resizedDataUrl) {
-      photoData[mode] = resizedDataUrl;
-      const preview = document.getElementById(mode + 'PhotoPreview');
-      preview.src = resizedDataUrl;
-      preview.style.display = 'block';
-    });
-  };
-  reader.readAsDataURL(file);
-  input.value = ''; // allow capturing the same file again if needed
-}
-
-// Shrinks the photo client-side (max 800px wide, JPEG ~70% quality) before it's sent, so a
-// batch of several entries doesn't turn into a huge upload.
-function resizeImage(dataUrl, maxWidth, quality, callback) {
-  const img = new Image();
-  img.onload = function() {
-    let w = img.width, h = img.height;
-    if (w > maxWidth) { h = Math.round(h * (maxWidth / w)); w = maxWidth; }
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-    callback(canvas.toDataURL('image/jpeg', quality));
-  };
-  img.src = dataUrl;
-}
-
-function clearPhoto(mode) {
-  photoData[mode] = null;
-  const preview = document.getElementById(mode + 'PhotoPreview');
-  preview.src = '';
-  preview.style.display = 'none';
-}
-
-// ---------------- ENTRY QUEUE (add multiple rows, then submit all at once) ----------------
-const queues = { in: [], out: [] };
-
-function addToQueue(mode) {
-  const sku = document.getElementById(mode + 'Sku').value.trim();
-  const name = document.getElementById(mode + 'ItemName').textContent;
-  const qty = Number(document.getElementById(mode + 'Qty').value);
-
-  if (!sku || !name) { showMsg(mode, 'err', '❌ Scan an item first.'); return; }
-  if (!qty || qty <= 0) { showMsg(mode, 'err', '❌ Enter a valid quantity.'); return; }
-
-  const row = { sku: sku, name: name, qty: qty, photo: photoData[mode] };
-  if (mode === 'out') {
-    const branch = document.getElementById('outBranch').value;
-    if (!branch) { showMsg('out', 'err', '⚠️ Please select a branch first.'); return; }
-    row.branch = branch;
-  }
-
-  queues[mode].push(row);
-  renderQueue(mode);
-  showMsg(mode, 'ok', '✅ Added to list: ' + name + ' x ' + qty);
-  resetForm(mode);
-}
-
-function removeQueueRow(mode, index) {
-  queues[mode].splice(index, 1);
-  renderQueue(mode);
-}
-
-function renderQueue(mode) {
-  const list = queues[mode];
-  const table = document.getElementById(mode + 'QueueTable');
-  const summary = document.getElementById(mode + 'QueueSummary');
-  const finalBtn = document.getElementById(mode + 'FinalSubmitBtn');
-
-  if (!list.length) {
-    table.innerHTML = '';
-    summary.textContent = 'No entries added yet.';
-    finalBtn.disabled = true;
-    return;
-  }
-
-  const branchCol = mode === 'out' ? '<th>Branch</th>' : '';
-  const rowsHtml = list.map((r, i) => {
-    const branchCell = mode === 'out' ? '<td>' + r.branch + '</td>' : '';
-    const photoCell = '<td>' + (r.photo ? '📷' : '—') + '</td>';
-    return '<tr><td>' + r.name + '</td><td>' + r.qty + '</td>' + branchCell + photoCell +
-      '<td><button class="queue-row-del" onclick="removeQueueRow(\'' + mode + '\',' + i + ')">✕</button></td></tr>';
-  }).join('');
-
-  table.innerHTML = '<tr><th>Item</th><th>Qty</th>' + branchCol + '<th>Photo</th><th></th></tr>' + rowsHtml;
-  summary.textContent = list.length + ' item' + (list.length === 1 ? '' : 's') + ' ready to submit.';
-  finalBtn.disabled = false;
-}
-
-// Submits every queued row one by one, shows progress, and clears only the ones that succeed
-// (failed rows stay in the list so nothing gets silently lost).
-function finalSubmit(mode) {
-  const list = queues[mode];
-  if (!list.length) return;
-
-  const finalBtn = document.getElementById(mode + 'FinalSubmitBtn');
-  finalBtn.disabled = true;
-  const stillFailed = [];
-  let successCount = 0;
-
-  function submitNext(i) {
-    if (i >= list.length) {
-      queues[mode] = stillFailed;
-      renderQueue(mode);
-      finalBtn.textContent = '✅ Final Submit';
-      if (stillFailed.length) {
-        showMsg(mode, 'err', '⚠️ ' + successCount + ' submitted, ' + stillFailed.length + ' failed - check and retry.');
-      } else {
-        showMsg(mode, 'ok', '✅ All ' + successCount + ' entries submitted successfully.');
+        script.src = url;
+        script.onerror = function () {
+          cleanup();
+          if (failureHandler) failureHandler({ message: 'Network error calling ' + functionName + ' (check APPS_SCRIPT_URL and that the deployment is accessible to Anyone).' });
+        };
+        document.body.appendChild(script);
       }
-      return;
+
+      function makeRunProxy() {
+        var pendingSuccess = null;
+        var pendingFailure = null;
+
+        var proxy = new Proxy({}, {
+          get: function (target, prop) {
+            if (prop === 'withSuccessHandler') {
+              return function (fn) { pendingSuccess = fn; return proxy; };
+            }
+            if (prop === 'withFailureHandler') {
+              return function (fn) { pendingFailure = fn; return proxy; };
+            }
+            if (prop === 'withUserObject') {
+              return function () { return proxy; }; // not needed here, no-op for compatibility
+            }
+            return function () {
+              var args = Array.prototype.slice.call(arguments);
+              var s = pendingSuccess, f = pendingFailure;
+              pendingSuccess = null;
+              pendingFailure = null;
+              jsonpCall(String(prop), args, s, f);
+            };
+          }
+        });
+        return proxy;
+      }
+
+      window.google = window.google || {};
+      window.google.script = window.google.script || {};
+      window.google.script.run = makeRunProxy();
+    })();
+    function $(id){ return document.getElementById(id); }
+    var BRANCHES = ['Ram Mandir', 'Vishrambagh'];
+
+    function setStatus(msg, cls) { var bar = $("global-status"); bar.innerText = msg; bar.className = "status-msg-bar " + (cls || ""); }
+
+    /* ======================= TOP-LEVEL TAB SWITCHING ======================= */
+    var TOP_TABS = ["dispatch","production","sales","closing","rawmat"];
+    var globalFiltersLoaded = false;
+    var rawMatInitDone = false;
+
+    function switchTopTab(tab) {
+      TOP_TABS.forEach(function(t){
+        $("top-tab-" + t).classList.toggle("active", t === tab);
+        $("view-" + t).hidden = (t !== tab);
+      });
+      $("global-filter-bar").style.display = (tab === 'rawmat') ? 'none' : 'flex';
+      if (tab === 'rawmat') { if (!rawMatInitDone) { rawMatInitDone = true; loadRawMatStock(); } return; }
+      if (!globalFiltersLoaded) loadGlobalFilters(function(){ reloadActiveDataTab(tab); });
+      else reloadActiveDataTab(tab);
     }
-    finalBtn.innerHTML = '<span class="spinner"></span>Submitting ' + (i + 1) + ' of ' + list.length + '…';
-    const row = list[i];
-    const action = mode === 'in' ? 'logInward' : 'logOutward';
-    const payload = mode === 'in'
-      ? { sku: row.sku, qty: row.qty, photo: row.photo }
-      : { sku: row.sku, qty: row.qty, branch: row.branch, photo: row.photo };
 
-    callApi(action, payload).then(res => {
-      if (res.success) successCount++; else stillFailed.push(row);
-      submitNext(i + 1);
-    }).catch(() => {
-      stillFailed.push(row);
-      submitNext(i + 1);
+    function loadGlobalFilters(cb) {
+      globalFiltersLoaded = true;
+      var today = new Date();
+      $("g-dateFilter").value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+
+      google.script.run.withSuccessHandler(function(branches){
+        var sel = $("g-branchFilter");
+        branches.forEach(function(b){ var opt = document.createElement("option"); opt.value = b; opt.textContent = b; sel.appendChild(opt); });
+      }).getBranchList();
+
+      google.script.run.withSuccessHandler(function(cats){
+        var sel = $("g-categoryFilter");
+        (cats || []).forEach(function(c){ var opt = document.createElement("option"); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
+        if (cb) cb();
+      }).getCategoriesWeb();
+    }
+
+    function getGlobalFilterParams() {
+      return { branch: $("g-branchFilter").value, category: $("g-categoryFilter").value, date: $("g-dateFilter").value };
+    }
+
+    function reloadActiveDataTab(tab) {
+      tab = tab || TOP_TABS.find(function(t){ return !$("view-" + t).hidden; });
+      if (tab === 'dispatch') loadDispatchTab();
+      else if (tab === 'production') loadProductionTab();
+      else if (tab === 'sales') loadSalesTab();
+      else if (tab === 'closing') loadVerifyData($("g-dateFilter").value);
+    }
+
+    /* ======================= PIVOT TABLES: Dispatch / Production / Sales ======================= */
+    function renderPivotTable(containerId, statusId, rows, locationLabel) {
+      var box = $(containerId);
+      if (!rows || !rows.length) {
+        box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No entries for this filter.</div>';
+        $(statusId).innerText = "0 item(s).";
+        return;
+      }
+      var html = '<div class="table-wrap"><table class="verify-table"><thead><tr><th>Item</th><th>Category</th><th>Date</th><th>' + locationLabel + '</th><th>Total</th></tr></thead><tbody>';
+      rows.forEach(function(r){
+        var parts = Object.keys(r.byBranch).map(function(b){ return b + ' ' + r.byBranch[b]; });
+        html += '<tr><td>' + r.item + '</td><td>' + (r.category || '—') + '</td><td>' + r.date + '</td><td>' + parts.join(', ') + '</td><td><b>' + r.total + '</b></td></tr>';
+      });
+      html += '</tbody></table></div>';
+      box.innerHTML = html;
+      $(statusId).innerText = rows.length + " item(s).";
+    }
+
+    function loadDispatchTab() {
+      var params = getGlobalFilterParams();
+      $("dispatch-table-box").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading dispatch data...", "");
+      google.script.run.withSuccessHandler(function(rows){ renderPivotTable("dispatch-table-box", "dispatch-status", rows, "Branch-wise Qty"); setStatus("Dispatch data loaded.", "success"); })
+        .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getDispatchPivotWeb(params);
+    }
+
+    function loadProductionTab() {
+      var params = getGlobalFilterParams();
+      $("production-table-box").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading production data...", "");
+      google.script.run.withSuccessHandler(function(rows){ renderPivotTable("production-table-box", "production-status", rows, "Location-wise Qty"); setStatus("Production data loaded.", "success"); })
+        .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getProductionPivotWeb(params);
+    }
+
+    function loadSalesTab() {
+      var params = getGlobalFilterParams();
+      $("sales-table-box").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading sales data...", "");
+      google.script.run.withSuccessHandler(function(rows){ renderPivotTable("sales-table-box", "sales-status", rows, "Branch-wise Qty"); setStatus("Sales data loaded.", "success"); })
+        .withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getSalesPivotWeb(params);
+    }
+
+    /* ======================= CLOSING STOCK TAB (real-time, was "Verification") ======================= */
+    var allVRows = [];
+
+    function formatDisplayDate_(dateStr) {
+      var d = new Date(dateStr + 'T00:00:00');
+      var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return String(d.getDate()).padStart(2,'0') + '-' + months[d.getMonth()] + '-' + d.getFullYear();
+    }
+
+    function updateVerifyBanner() {
+      var dateStr = $("g-dateFilter").value;
+      var branchFilter = $("g-branchFilter").value;
+      if (!dateStr) { $("v-formulaBanner").innerText = ""; return; }
+      var d = new Date(dateStr); var prev = new Date(d.getTime()); prev.setDate(prev.getDate() - 1);
+      var prevStr = prev.getFullYear() + '-' + String(prev.getMonth()+1).padStart(2,'0') + '-' + String(prev.getDate()).padStart(2,'0');
+      var prevDisplay = formatDisplayDate_(prevStr), todayDisplay = formatDisplayDate_(dateStr);
+
+      $("v-th-opening-sub").textContent = '(Yesterday, ' + prevDisplay + ')';
+      $("v-th-actual-sub").textContent = '(Today, ' + todayDisplay + ')';
+
+      if (branchFilter === 'Savali Factory') {
+        // Savali Factory has no manual closing count — it's fully derived from Inventory_Log,
+        // so "Dispatch"/"Sales" here actually mean Production (in) / Dispatch out (out), not
+        // the branch meaning of "dispatch received"/"sales sold". Relabel so it's unambiguous
+        // instead of relying on a small print note elsewhere on the page.
+        $("v-th-dispatch").textContent = 'Production';
+        $("v-th-sales").textContent = 'Dispatch (Out)';
+        $("v-formulaBanner").innerText = 'Savali Factory — Opening Stock (Yesterday, ' + prevDisplay + ', after Production − Dispatch)  +  Production (' + todayDisplay + ')  −  Dispatch Out (' + todayDisplay + ')  =  System-Generated Closing (' + todayDisplay + '). No manual count exists for the factory, so Actual always equals this calculated figure.';
+      } else {
+        $("v-th-dispatch").textContent = 'Dispatch';
+        $("v-th-sales").textContent = 'Sales';
+        $("v-formulaBanner").innerText = 'Opening Stock (Closing of ' + prevDisplay + ')  +  Dispatch Received (' + todayDisplay + ')  −  Sales Sold (' + todayDisplay + ')  =  System-Generated Closing (' + todayDisplay + ')';
+      }
+    }
+
+    function loadVerifyData(dateStr) {
+      if (!dateStr) return;
+      updateVerifyBanner();
+      $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Loading… (computing live)</td></tr>';
+      google.script.run
+        .withSuccessHandler(function(res){
+          if (!res.success) { $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">' + res.message + '</td></tr>'; allVRows = []; return; }
+          allVRows = res.rows; renderVerify();
+        })
+        .withFailureHandler(function(err){ $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Error: ' + err.message + '</td></tr>'; })
+        .getOrGenerateVerificationData(dateStr);
+    }
+
+    function renderVerify() {
+      var branchFilter = $("g-branchFilter").value, categoryFilter = $("g-categoryFilter").value;
+      var rows = allVRows.filter(function(r){
+        return (branchFilter === 'All' || r.branch === branchFilter)
+          && (categoryFilter === 'All' || (r.category || '') === categoryFilter);
+      });
+
+      var tbody = $("v-tableBody"); tbody.innerHTML = '';
+      if (!rows.length) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">No rows match this filter.</td></tr>';
+      rows.forEach(function(r){
+        var tr = document.createElement('tr');
+        if (r.status === 'MISMATCH') tr.className = 'mismatch'; else if (r.status.indexOf('No ') === 0) tr.className = 'noentry';
+        var statusClass = 'status-' + r.status.replace(/ /g, '-');
+        var openingDisp = (r.opening === '' ? '—' : r.opening);
+        tr.innerHTML = '<td>' + r.branch + '</td><td>' + r.item + '</td><td>' + (r.category || '—') + '</td><td>' + openingDisp + '</td>' +
+          '<td>' + r.dispatch + '</td><td>' + r.sales + '</td><td>' + r.expected + '</td>' +
+          '<td>' + (r.actual === '' ? '—' : r.actual) + '</td><td>' + (r.variance === '' ? '—' : r.variance) + '</td>' +
+          '<td><span class="status-pill ' + statusClass + '">' + r.status + '</span></td>';
+        tbody.appendChild(tr);
+      });
+
+      var total = rows.length;
+      var mismatches = rows.filter(function(r){ return r.status === 'MISMATCH'; }).length;
+      var ok = rows.filter(function(r){ return r.status === 'OK'; }).length;
+      var noEntry = rows.filter(function(r){ return r.status.indexOf('No ') === 0; }).length;
+      $("v-summary").innerHTML =
+        '<div class="card"><div class="num">' + total + '</div><div class="lbl">Items Shown</div></div>' +
+        '<div class="card"><div class="num" style="color:var(--green)">' + ok + '</div><div class="lbl">OK</div></div>' +
+        '<div class="card"><div class="num" style="color:var(--terracotta)">' + mismatches + '</div><div class="lbl">Mismatches</div></div>' +
+        '<div class="card"><div class="num" style="color:#7f8c8d">' + noEntry + '</div><div class="lbl">No Entry</div></div>';
+    }
+
+    // Force-recomputes Closing Stock for the currently selected date from scratch.
+    function regenerateVerifyForDate() {
+      var dateStr = $("g-dateFilter").value;
+      if (!dateStr) { setStatus("Pick a date first.", "error"); return; }
+      $("v-tableBody").innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:15px;">Regenerating…</td></tr>';
+      setStatus("Regenerating closing stock for " + dateStr + "...", "");
+      google.script.run
+        .withSuccessHandler(function(res){
+          if (!res.success) { setStatus("Regenerate failed: " + res.message, "error"); return; }
+          setStatus("Regenerated " + dateStr + ".", "success");
+          loadVerifyData(dateStr);
+        })
+        .withFailureHandler(function(err){ setStatus("Regenerate error: " + err.message, "error"); })
+        .dashboardRunForDate(dateStr);
+    }
+
+    /* ======================= RAW MATERIALS (IMS live stock + consumption log) ======================= */
+    var rawMatStockCache = [];
+
+    function switchRawMatTab(tab) {
+      ["stock","log"].forEach(function(t){ $("rawmat-tab-" + t).classList.toggle("active", t === tab); });
+      $("rawmat-view-stock").style.display = (tab === 'stock') ? "block" : "none";
+      $("rawmat-view-log").style.display = (tab === 'log') ? "block" : "none";
+    }
+
+    function loadRawMatStock() {
+      $("rawmat-stock-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading raw material stock...", "");
+      google.script.run.withSuccessHandler(function(data){
+        rawMatStockCache = data || []; filterRawMatStock($("rawmat-search-input").value);
+        setStatus("Loaded " + rawMatStockCache.length + " material(s).", "success");
+      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getIMSStockWeb();
+    }
+
+    function filterRawMatStock(query) {
+      var q = (query || "").trim().toLowerCase();
+      var list = !q ? rawMatStockCache : rawMatStockCache.filter(function(m){
+        return (m.name && m.name.toLowerCase().indexOf(q) !== -1) || (m.category && m.category.toLowerCase().indexOf(q) !== -1);
+      });
+      var box = $("rawmat-stock-list");
+      if (!list.length) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px; grid-column:1/-1;">No materials found.</div>'; return; }
+      var html = "";
+      list.forEach(function(m){
+        var lowFlag = m.stock <= 0;
+        html += `<div class="dash-row"><div class="dash-row-top"><span class="dash-row-name">${m.name}</span><span class="dash-row-loc">${m.category || '—'}</span></div><div class="dash-row-figs"><span>Current Stock: <b style="${lowFlag ? 'color:var(--terracotta);' : ''}">${m.stock}</b></span></div></div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function loadRawMatLog() {
+      var search = $("rawmat-log-search-input").value;
+      $("rawmat-log-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading...</div>';
+      setStatus("Loading consumption log...", "");
+      google.script.run.withSuccessHandler(function(rows){
+        renderRawMatLog(rows || []); setStatus("Loaded " + (rows ? rows.length : 0) + " row(s).", "success");
+      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getRawMaterialLogRawWeb({ search: search });
+    }
+
+    function renderRawMatLog(rows) {
+      var box = $("rawmat-log-list");
+      if (!rows.length) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
+      var html = '<div class="table-wrap"><table class="verify-table"><thead><tr>' +
+        '<th>Timestamp</th><th>Material</th><th>From (FG Breakdown)</th><th>Qty Consumed</th><th>Unit</th><th>Stock Before</th><th>Stock After</th><th>Note</th>' +
+        '</tr></thead><tbody>';
+      rows.forEach(function(r){
+        var negFlag = (typeof r.stockAfter === 'number' && r.stockAfter < 0) ? ' style="color:var(--terracotta); font-weight:700;"' : '';
+        html += '<tr><td>' + r.timestamp + '</td><td>' + r.material + '</td><td>' + (r.fgBreakdown || '—') + '</td>' +
+          '<td>' + r.qtyConsumed + '</td><td>' + (r.unit || '') + '</td><td>' + r.stockBefore + '</td>' +
+          '<td' + negFlag + '>' + r.stockAfter + '</td><td>' + (r.note || '—') + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      box.innerHTML = html;
+    }
+
+    window.addEventListener('DOMContentLoaded', function () {
+      switchTopTab('dispatch');
     });
-  }
-
-  submitNext(0);
-}
-
-function resetForm(mode) {
-  document.getElementById(mode + 'Sku').value = '';
-  document.getElementById(mode + 'Qty').value = '';
-  clearPhoto(mode);
-  document.getElementById(mode + 'ItemBox').style.display = 'none';
-  document.getElementById(mode + 'SubmitBtn').disabled = true;
-  document.getElementById(mode + 'Sku').focus();
-}
-</script>
+  </script>
 </body>
 </html>
