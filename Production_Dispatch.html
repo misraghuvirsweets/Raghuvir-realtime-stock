@@ -33,6 +33,7 @@
     }
     .menu-btn.inward{ background:var(--green); }
     .menu-btn.outward{ background:var(--terracotta); }
+    .menu-btn.outmove{ background:var(--navy); }
     .menu-btn:active{ transform: scale(0.97); opacity:0.95; }
     .menu-btn-title{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; }
 
@@ -40,6 +41,7 @@
     .panel-head{ display:flex; align-items:center; gap:8px; padding:14px 16px; font-family:'Fraunces',serif; font-size:18px; font-weight:600; border-bottom:1px solid var(--border); }
     .dashboard-panel.inward .panel-head{ background:var(--green-soft); color:var(--green); }
     .dashboard-panel.outward .panel-head{ background:var(--terracotta-soft); color:var(--terracotta); }
+    .dashboard-panel.outmove .panel-head{ background:var(--navy-soft); color:var(--navy); }
     .back-btn{ border:none; background:none; font-size:22px; cursor:pointer; color:inherit; padding:2px 8px; font-weight: bold; }
     .panel-body{ padding:16px; display:flex; flex-direction:column; gap:14px; }
 
@@ -101,6 +103,7 @@
     .manual-item-qty-input.touched{ background:#F2E8DB; }
     .dashboard-panel.inward .manual-item-qty-input.touched{ border-color:var(--green); }
     .dashboard-panel.outward .manual-item-qty-input.touched{ border-color:var(--terracotta); }
+    .dashboard-panel.outmove .manual-item-qty-input.touched{ border-color:var(--navy); }
     .manual-summary-bar{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:var(--navy-soft); border-radius:10px; padding:11px 14px; font-size:12.5px; font-weight:700; color:var(--navy); }
     .manual-secondary-btn{
       width:100%; padding:13px; border:none; border-radius:10px; font-size:14px; font-weight:700;
@@ -211,6 +214,9 @@
         </button>
         <button class="menu-btn outward" type="button" onclick="openDashboardScreen('out')">
           <span class="menu-btn-title">Dispatch (DISP)</span>
+        </button>
+        <button class="menu-btn outmove" type="button" onclick="openDashboardScreen('outmove')">
+          <span class="menu-btn-title">Outward (OUT)</span>
         </button>
       </div>
     </div>
@@ -427,8 +433,8 @@
       selectedBranchName = null;
       $("menu-screen").hidden = true;
       $("desk-dashboard").hidden = false;
-      $("desk-dashboard").className = "dashboard-panel " + (mode === "in" ? "inward" : "outward");
-      $("dashboard-title-label").innerText = mode === "in" ? "Production Dashboard Unit" : "Dispatch Dashboard Unit";
+      $("desk-dashboard").className = "dashboard-panel " + (mode === "in" ? "inward" : (mode === "outmove" ? "outmove" : "outward"));
+      $("dashboard-title-label").innerText = mode === "in" ? "Production Dashboard Unit" : (mode === "outmove" ? "Outward Dashboard Unit" : "Dispatch Dashboard Unit");
 
       $("manual-entry-panel").style.display = "none";
       $("scan-box-wrapper").style.display = "flex";
@@ -439,6 +445,14 @@
 
       refreshHistoryLogDisplay();
       setLogStatus("Dashboard Workspace Initiated.", "success");
+
+      // Outward is a small curated list (Outward-Products sheet) with no barcode scanning and
+      // no category picker — go straight to the manual-entry grid instead of showing a scan box.
+      if (mode === "outmove") {
+        $("scan-box-wrapper").style.display = "none";
+        $("manual-entry-btn").style.display = "none";
+        openManualEntryPanel();
+      }
     }
 
     function exitDashboardScreen() {
@@ -638,7 +652,7 @@
 
     function commitPayloadEntryToStaging(quantityToLog) {
       var itemObject = {
-        type: (currentActiveMode === "in") ? "PRODUCTION" : "DISPATCH",
+        type: (currentActiveMode === "in") ? "PRODUCTION" : (currentActiveMode === "outmove" ? "OUTWARD" : "DISPATCH"),
         barcode: currentScannedPayload.barcode, category: currentScannedPayload.category, product: currentScannedPayload.product,
         qty: quantityToLog, branch: (currentActiveMode === "out") ? selectedBranchName : ""
       };
@@ -652,15 +666,38 @@
       $("scan-box-wrapper").style.display = "none";
       $("manual-entry-btn").style.display = "none";
       $("manual-entry-panel").style.display = "flex";
-      if (!manualCategoriesLoaded) loadManualCategories();
-      else if (categoryLockActive) applyManualPresetCategory();
+
+      if (currentActiveMode === "outmove") {
+        $("manual-category-select").style.display = "none";
+        $("manual-category-locked-tag").style.display = "none";
+        $("manual-entry-panel").querySelector(".manual-secondary-btn").innerText = "← Back to Menu";
+        loadOutwardManualItems();
+      } else {
+        $("manual-category-select").style.display = "";
+        $("manual-entry-panel").querySelector(".manual-secondary-btn").innerText = "← Back to Scan";
+        if (!manualCategoriesLoaded) loadManualCategories();
+        else if (categoryLockActive) applyManualPresetCategory();
+      }
     }
 
     function closeManualEntryPanel() {
+      if (currentActiveMode === "outmove") { exitDashboardScreen(); return; } // no scan box to go back to
       $("manual-entry-panel").style.display = "none";
       $("scan-box-wrapper").style.display = "flex";
       $("manual-entry-btn").style.display = "flex";
       updateScanBoxLockState();
+    }
+
+    // Loads the flat, curated Outward-Products list (no category grouping) for Outward mode.
+    function loadOutwardManualItems() {
+      $("manual-items-grid").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading Outward products...</div>';
+      setLogStatus("Loading Outward products...", "");
+      google.script.run.withSuccessHandler(function(items){
+        renderManualItemsGrid(items || []);
+        $("manual-summary-bar").style.display = "flex";
+        updateManualSummary(items ? items.length : 0);
+        setLogStatus("Loaded " + (items ? items.length : 0) + " Outward product(s).", "success");
+      }).withFailureHandler(function(e){ setLogStatus("Outward items load failed.", "error"); }).getOutwardProductsWeb();
     }
 
     function loadManualCategories() {
@@ -751,7 +788,7 @@
       var barcode = inputEl.getAttribute("data-barcode");
       var product = inputEl.getAttribute("data-product");
       var category = inputEl.getAttribute("data-category");
-      var type = (currentActiveMode === "in") ? "PRODUCTION" : "DISPATCH";
+      var type = (currentActiveMode === "in") ? "PRODUCTION" : (currentActiveMode === "outmove" ? "OUTWARD" : "DISPATCH");
       var qty = parseFloat(inputEl.value);
 
       var existingIndex = -1;
@@ -776,9 +813,14 @@
 
     function submitEntireDeskBatch() {
       if (centralBatchCollection.length === 0) { setLogStatus("Staging batch is empty.", "error"); return; }
-      var confirmMsg = currentActiveMode === "in"
-        ? "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be increased (+) at Savali Factory for each item."
-        : "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be reduced (-) at Savali Factory immediately, and will show as PENDING for " + selectedBranchName + " until they confirm receipt on their Branch Dashboard.";
+      var confirmMsg;
+      if (currentActiveMode === "in") {
+        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be increased (+) at Savali Factory for each item.";
+      } else if (currentActiveMode === "outmove") {
+        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be reduced (-) at Savali Factory immediately as an Outward movement — no branch or receiving confirmation involved.";
+      } else {
+        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be reduced (-) at Savali Factory immediately, and will show as PENDING for " + selectedBranchName + " until they confirm receipt on their Branch Dashboard.";
+      }
       if (!confirm(confirmMsg)) return;
 
       setLogStatus("Uploading batch...", "");
