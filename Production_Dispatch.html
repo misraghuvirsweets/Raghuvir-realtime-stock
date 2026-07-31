@@ -830,7 +830,16 @@
       google.script.run.withSuccessHandler(function(res){
         if (res && res.success) {
           if (currentActiveMode === "out") showChallanPreview(batchSnapshot, dispatchBranchSnapshot, res.challanNo || '');
-          else { alert("All entries pushed successfully! Stock updated."); centralBatchCollection = []; refreshHistoryLogDisplay(); exitDashboardScreen(); }
+          else {
+            var allWarnings = [].concat(res.imsWarnings || [], res.outwardWarnings || []);
+            var msg = "All entries pushed successfully! Stock updated.";
+            if (currentActiveMode === "outmove" && (res.outwardDirectMaterialDeductions || res.outwardRecipeDeductions)) {
+              msg += "\n\nRaw materials updated: " + (res.outwardDirectMaterialDeductions || 0) + " deducted directly, " + (res.outwardRecipeDeductions || 0) + " via recipe.";
+            }
+            if (allWarnings.length) msg += "\n\n⚠ Warnings:\n- " + allWarnings.join("\n- ");
+            alert(msg);
+            centralBatchCollection = []; refreshHistoryLogDisplay(); exitDashboardScreen();
+          }
         } else setLogStatus("Save failed: " + (res && res.error ? res.error : "unknown error"), "error");
       }).withFailureHandler(function(e){ setLogStatus("Submission error: " + e.message, "error"); }).saveBatchTransactionsWeb(centralBatchCollection);
     }
