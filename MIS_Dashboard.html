@@ -88,11 +88,12 @@
     .txn-row:last-child{ border-bottom:none; }
     .txn-left{ display:flex; flex-direction:column; gap:2px; min-width:0; }
     .txn-type-tag{ font-weight:700; font-size:13px; }
-    .txn-type-tag.prod{ color:var(--green); } .txn-type-tag.disp{ color:var(--terracotta); } .txn-type-tag.sale{ color:var(--gold); }
+    .txn-type-tag.prod{ color:var(--green); } .txn-type-tag.disp{ color:var(--terracotta); } .txn-type-tag.sale{ color:var(--gold); } .txn-type-tag.outw{ color:var(--navy); }
     .txn-qty-change{ font-weight:700; font-size:14px; padding:4px 9px; border-radius:6px; flex-shrink:0; }
     .txn-qty-change.prod{ color:var(--green); background:var(--green-soft); }
     .txn-qty-change.disp{ color:var(--terracotta); background:var(--terracotta-soft); }
     .txn-qty-change.sale{ color:var(--gold); background:var(--gold-soft); }
+    .txn-qty-change.outw{ color:var(--navy); background:var(--navy-soft); }
 
     .diag-line{ font-size:12px; color:var(--text-soft); line-height:1.7; }
     .diag-line b{ color:var(--navy); }
@@ -153,7 +154,7 @@
         </div>
         <div class="filter-row">
           <select id="rec-type-filter" class="filter-select" onchange="handleRecTypeChange()">
-            <option value="All">All Types</option><option value="PRODUCTION">Production</option><option value="DISPATCH">Dispatch</option><option value="SALE">Sale</option>
+            <option value="All">All Types</option><option value="PRODUCTION">Production</option><option value="DISPATCH">Dispatch</option><option value="OUTWARD">Outward</option><option value="SALE">Sale</option>
           </select>
           <select id="rec-location-filter" class="filter-select">
             <option value="All">All Locations</option><option value="Savali Factory">Savali Factory</option>
@@ -396,12 +397,12 @@
 
     function renderItemHistory(historyList) {
       var box = $("history-list");
-      if (!historyList || historyList.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No PRODUCTION/DISPATCH transactions recorded yet for this item (branch POS sales appear in the Sales tab instead).</div>'; return; }
+      if (!historyList || historyList.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No PRODUCTION/DISPATCH/OUTWARD transactions recorded yet for this item (branch POS sales appear in the Sales tab instead).</div>'; return; }
       var html = "";
       for (var i = 0; i < historyList.length; i++) {
         var txn = historyList[i];
-        var cls = txn.type === "PRODUCTION" ? "prod" : (txn.type === "DISPATCH" ? "disp" : "sale");
-        var icon = txn.type === "PRODUCTION" ? "⬆ PRODUCTION" : (txn.type === "DISPATCH" ? "⬇ DISPATCH" : "🛍️ SALE");
+        var cls = txn.type === "PRODUCTION" ? "prod" : (txn.type === "DISPATCH" ? "disp" : (txn.type === "OUTWARD" ? "outw" : "sale"));
+        var icon = txn.type === "PRODUCTION" ? "⬆ PRODUCTION" : (txn.type === "DISPATCH" ? "⬇ DISPATCH" : (txn.type === "OUTWARD" ? "↘ OUTWARD" : "🛍️ SALE"));
         var sign = txn.type === "PRODUCTION" ? "+" : "-";
         var branchLine = txn.branch ? (" | Branch: " + txn.branch) : "";
         var valueLine = txn.value ? (" | ₹" + Number(txn.value).toLocaleString('en-IN')) : "";
@@ -422,12 +423,12 @@
       $("records-list").innerHTML = "Filters set — tap \"Load Records\" to view.";
     }
 
-    // Production only ever happens at Savali Factory, so once "Production" is picked there's
-    // no other valid location to choose — auto-set it and lock the dropdown.
+    // Production and Outward only ever happen at Savali Factory, so once one of those is picked
+    // there's no other valid location to choose — auto-set it and lock the dropdown.
     function handleRecTypeChange() {
       var type = $("rec-type-filter").value;
       var locSel = $("rec-location-filter");
-      if (type === 'PRODUCTION') { locSel.value = 'Savali Factory'; locSel.disabled = true; }
+      if (type === 'PRODUCTION' || type === 'OUTWARD') { locSel.value = 'Savali Factory'; locSel.disabled = true; }
       else locSel.disabled = false;
     }
 
@@ -450,7 +451,7 @@
       if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
       var html = "";
       rows.forEach(function(r){
-        var cls = r.type === "PRODUCTION" ? "prod" : (r.type === "DISPATCH" ? "disp" : "sale");
+        var cls = r.type === "PRODUCTION" ? "prod" : (r.type === "DISPATCH" ? "disp" : (r.type === "OUTWARD" ? "outw" : "sale"));
         var recTag = r.receivedStatus === "Pending" ? ' <span style="color:var(--terracotta); font-weight:700;">(Pending)</span>' : (r.receivedStatus === "Received" ? ' <span style="color:var(--green); font-weight:700;">(Received)</span>' : '');
         html += `<div class="txn-row"><div class="txn-left"><span class="txn-type-tag ${cls}">${r.type}</span><span style="color:var(--text-soft); font-size:11px;">${r.timestamp} | ${r.product}${r.branch ? ' | ' + r.branch : ''}${recTag}</span></div><span class="txn-qty-change ${cls}">${r.qty}</span></div>`;
       });
@@ -551,7 +552,7 @@
         if (res.ready) el.textContent = 'WhatsApp (WATI) config looks ready.';
         else {
           var missing = [];
-          if (!res.endpointOk) missing.push('endpoint'); if (!res.tokenOk) missing.push('access token'); if (!res.templateOk) missing.push('template name');
+          if (!res.endpointOk) missing.push('endpoint'); if (!res.tokenOk) missing.push('access token'); if (!res.templateOk) missing.push('template name'); if (!res.ownerPhoneOk) missing.push('owner phone number');
           el.textContent = 'WhatsApp (WATI) config incomplete: fill in ' + missing.join(', ') + ' in the WhatsApp_Config sheet.';
         }
       }).dashboardWhatsAppConfigStatus();
