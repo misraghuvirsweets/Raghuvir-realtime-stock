@@ -34,14 +34,30 @@
     .menu-btn.inward{ background:var(--green); }
     .menu-btn.outward{ background:var(--terracotta); }
     .menu-btn.outmove{ background:var(--navy); }
+    .menu-btn.rawinward{ background:var(--green); }
     .menu-btn:active{ transform: scale(0.97); opacity:0.95; }
     .menu-btn-title{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; }
+    .inward-item-row{ display:grid; grid-template-columns:1fr auto 90px; align-items:center; gap:8px; padding:9px 0; border-bottom:1px dashed var(--border); }
+    .inward-item-row:last-child{ border-bottom:none; }
+    .inward-purchased-tag{ font-size:11.5px; color:var(--text-soft); white-space:nowrap; }
+    .inward-purchased-tag b{ color:var(--text); }
+    .inward-received-input{
+      width:100%; padding:8px 9px; border:1px solid var(--border); border-radius:8px;
+      font-size:13.5px; font-family:inherit; text-align:right; outline:none; background:#fff; color:var(--text);
+    }
+    .inward-received-input:focus{ border-color:var(--green); }
+    .inward-receiver-input{
+      width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:10px;
+      font-size:14px; font-family:inherit; background:#fff; color:var(--text); outline:none; box-sizing:border-box;
+    }
+    .inward-receiver-input:focus{ border-color:var(--green); }
 
     .dashboard-panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
     .panel-head{ display:flex; align-items:center; gap:8px; padding:14px 16px; font-family:'Fraunces',serif; font-size:18px; font-weight:600; border-bottom:1px solid var(--border); }
     .dashboard-panel.inward .panel-head{ background:var(--green-soft); color:var(--green); }
     .dashboard-panel.outward .panel-head{ background:var(--terracotta-soft); color:var(--terracotta); }
     .dashboard-panel.outmove .panel-head{ background:var(--navy-soft); color:var(--navy); }
+    .dashboard-panel.rawinward .panel-head{ background:var(--green-soft); color:var(--green); }
     .back-btn{ border:none; background:none; font-size:22px; cursor:pointer; color:inherit; padding:2px 8px; font-weight: bold; }
     .panel-body{ padding:16px; display:flex; flex-direction:column; gap:14px; }
 
@@ -218,6 +234,9 @@
         <button class="menu-btn outmove" type="button" onclick="openDashboardScreen('outmove')">
           <span class="menu-btn-title">Outward (OUT)</span>
         </button>
+        <button class="menu-btn rawinward" type="button" onclick="openInwardScreen()">
+          <span class="menu-btn-title">Inward (Raw Material)</span>
+        </button>
       </div>
     </div>
 
@@ -272,6 +291,41 @@
 
         <div id="dashboard-status-log" class="status-msg-bar"></div>
       </div>
+    </div>
+  </div>
+
+  <div id="inward-screen" class="dashboard-panel rawinward" hidden>
+    <div class="panel-head">
+      <button class="back-btn" type="button" onclick="exitInwardScreen()">←</button>
+      <span>Raw Material Inward</span>
+    </div>
+
+    <div class="panel-body">
+      <div id="inward-category-section">
+        <label class="history-section-label">Select Category</label>
+        <div class="manual-form-row">
+          <select id="inward-category-select" class="manual-form-select" onchange="loadInwardItemsForCategory()">
+            <option value="">Loading categories...</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="inward-items-section" style="display:none;">
+        <label class="history-section-label">Item Wise — Purchased Qty vs Received Qty</label>
+        <div class="challan-table">
+          <div class="challan-table-head" style="display:grid; grid-template-columns:1fr auto 90px;">
+            <span>Item Name</span><span class="inward-purchased-tag">Purchased</span><span>Received Qty</span>
+          </div>
+          <div id="inward-items-list"></div>
+        </div>
+
+        <label class="history-section-label" style="margin-top:10px;">Receiver's Name</label>
+        <input id="inward-receiver-name" class="inward-receiver-input" type="text" placeholder="Enter the name of the person who received this stock">
+
+        <button class="master-submit-btn" type="button" onclick="submitInwardReceiving()">💾 Save Inward Receiving</button>
+      </div>
+
+      <div id="inward-status-log" class="status-msg-bar"></div>
     </div>
   </div>
 
@@ -461,6 +515,100 @@
       selectedBranchName = null;
       $("desk-dashboard").hidden = true;
       $("menu-screen").hidden = false;
+    }
+
+    /* ======================= RAW MATERIAL INWARD (from Purchased sheet) ======================= */
+    var inwardCategoriesLoaded = false;
+    var inwardItemsCache = [];
+
+    function openInwardScreen() {
+      $("menu-screen").hidden = true;
+      $("inward-screen").hidden = false;
+      $("inward-items-section").style.display = "none";
+      $("inward-category-select").value = "";
+      $("inward-receiver-name").value = "";
+      setInwardStatus("", "");
+      if (!inwardCategoriesLoaded) loadInwardCategories();
+    }
+
+    function exitInwardScreen() {
+      $("inward-screen").hidden = true;
+      $("menu-screen").hidden = false;
+    }
+
+    function setInwardStatus(msg, cls) { var el = $("inward-status-log"); el.innerText = msg; el.className = "status-msg-bar " + (cls || ""); }
+
+    function loadInwardCategories() {
+      inwardCategoriesLoaded = true;
+      google.script.run.withSuccessHandler(function(cats){
+        var sel = $("inward-category-select");
+        sel.innerHTML = '<option value="">Select a category...</option>';
+        (cats || []).forEach(function(c){ var opt = document.createElement("option"); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
+        if (!cats || !cats.length) setInwardStatus("No categories found in the Purchased sheet yet.", "error");
+      }).withFailureHandler(function(e){ setInwardStatus("Error loading categories: " + e.message, "error"); }).getPurchasedCategoriesWeb();
+    }
+
+    function loadInwardItemsForCategory() {
+      var category = $("inward-category-select").value;
+      if (!category) { $("inward-items-section").style.display = "none"; return; }
+      $("inward-items-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading items...</div>';
+      $("inward-items-section").style.display = "block";
+      setInwardStatus("Loading purchased items for " + category + "...", "");
+      google.script.run.withSuccessHandler(function(items){
+        inwardItemsCache = items || [];
+        renderInwardItemsList(inwardItemsCache);
+        setInwardStatus(inwardItemsCache.length + " item(s) loaded.", "success");
+      }).withFailureHandler(function(e){ setInwardStatus("Error loading items: " + e.message, "error"); }).getPurchasedItemsByCategoryWeb(category);
+    }
+
+    function renderInwardItemsList(items) {
+      var box = $("inward-items-list");
+      if (!items.length) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No purchased items found for this category.</div>'; return; }
+      var html = "";
+      items.forEach(function(it, idx){
+        var newTag = it.currentStock === null ? ' <span style="color:var(--navy); font-weight:700;">(new)</span>' : '';
+        html += `<div class="inward-item-row">
+          <span>${it.name}${newTag}</span>
+          <span class="inward-purchased-tag">${it.unit ? it.unit + ': ' : ''}<b>${it.purchasedQty}</b></span>
+          <input class="inward-received-input" type="number" step="any" value="${it.purchasedQty}" data-index="${idx}" aria-label="Received quantity for ${it.name}">
+        </div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function submitInwardReceiving() {
+      var receiverName = $("inward-receiver-name").value.trim();
+      if (!receiverName) { alert("Please enter the receiver's name before saving."); $("inward-receiver-name").focus(); return; }
+      if (!inwardItemsCache.length) { setInwardStatus("No items loaded to save.", "error"); return; }
+
+      var inputs = document.querySelectorAll("#inward-items-list .inward-received-input");
+      var payload = [];
+      var hasInvalid = false;
+      inputs.forEach(function(inp){
+        var idx = Number(inp.getAttribute("data-index"));
+        var qty = parseFloat(inp.value);
+        if (isNaN(qty) || qty < 0) { hasInvalid = true; return; }
+        if (qty <= 0) return; // skip zero entries, nothing to receive for that item
+        var it = inwardItemsCache[idx];
+        payload.push({ name: it.name, category: it.category, unit: it.unit, receivedQty: qty });
+      });
+      if (hasInvalid) { alert("Please enter a valid received quantity (0 or more) for every item."); return; }
+      if (!payload.length) { alert("Enter at least one received quantity greater than 0."); return; }
+
+      if (!confirm("Save Inward receiving for " + payload.length + " item(s), received by " + receiverName + "?")) return;
+
+      setInwardStatus("Saving...", "");
+      google.script.run
+        .withSuccessHandler(function(res){
+          if (res && res.success) {
+            setInwardStatus((res.updatedCount || 0) + " material(s) updated, " + (res.addedCount || 0) + " new material(s) added to IMS.", "success");
+            alert("Inward receiving saved! Raw material stock updated.");
+            $("inward-receiver-name").value = "";
+            loadInwardItemsForCategory(); // refresh so purchased/current figures reflect the save
+          } else setInwardStatus("Save failed: " + (res && res.error ? res.error : "unknown error"), "error");
+        })
+        .withFailureHandler(function(e){ setInwardStatus("Submission error: " + e.message, "error"); })
+        .saveInwardReceivingWeb(payload, receiverName);
     }
 
     function selectBranch(branchName) {
