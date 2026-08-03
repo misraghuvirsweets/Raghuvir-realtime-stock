@@ -207,6 +207,7 @@
         <div class="sub-tab-row">
           <button class="sub-tab-btn active" id="rawmat-tab-stock" type="button" onclick="switchRawMatTab('stock')">Live Stock (IMS)</button>
           <button class="sub-tab-btn" id="rawmat-tab-log" type="button" onclick="switchRawMatTab('log')">Consumption Log</button>
+          <button class="sub-tab-btn" id="rawmat-tab-norecipe" type="button" onclick="switchRawMatTab('norecipe')">Recipe Not Found</button>
         </div>
 
         <div id="rawmat-view-stock">
@@ -226,6 +227,12 @@
           </div>
           <label class="history-section-label">Showing most recent 300 rows matching your filter</label>
           <div id="rawmat-log-list" class="scroll-box" style="max-height:480px;">Tap "Load Log" to view.</div>
+        </div>
+
+        <div id="rawmat-view-norecipe" style="display:none;">
+          <p style="font-size:12px; color:var(--text-soft); margin:0;">Master items with no matching Recipes entry (checked the same way as everywhere else — Item_Name_Correction applied first, then matched). Production won't deduct any raw materials for these until a Recipes row is added for them, or an alias is added if it's just a spelling/naming mismatch.</p>
+          <button class="master-btn" type="button" onclick="loadMissingRecipeItems()">🔄 Refresh</button>
+          <div id="rawmat-norecipe-list" class="scroll-box grid-box">Tap "Refresh" to load.</div>
         </div>
       </div>
     </div>
@@ -516,9 +523,10 @@
     var rawMatStockCache = [];
 
     function switchRawMatTab(tab) {
-      ["stock","log"].forEach(function(t){ $("rawmat-tab-" + t).classList.toggle("active", t === tab); });
+      ["stock","log","norecipe"].forEach(function(t){ $("rawmat-tab-" + t).classList.toggle("active", t === tab); });
       $("rawmat-view-stock").style.display = (tab === 'stock') ? "block" : "none";
       $("rawmat-view-log").style.display = (tab === 'log') ? "block" : "none";
+      $("rawmat-view-norecipe").style.display = (tab === 'norecipe') ? "block" : "none";
     }
 
     function loadRawMatStock() {
@@ -567,6 +575,25 @@
           '<td' + negFlag + '>' + r.stockAfter + '</td><td>' + (r.note || '—') + '</td></tr>';
       });
       html += '</tbody></table></div>';
+      box.innerHTML = html;
+    }
+
+    function loadMissingRecipeItems() {
+      $("rawmat-norecipe-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Checking Master against Recipes...</div>';
+      setStatus("Checking for items with no recipe...", "");
+      google.script.run.withSuccessHandler(function(items){
+        renderMissingRecipeItems(items || []);
+        setStatus((items ? items.length : 0) + " item(s) with no matching recipe.", "success");
+      }).withFailureHandler(function(e){ setStatus("Error: " + e.message, "error"); }).getMissingRecipeItemsWeb();
+    }
+
+    function renderMissingRecipeItems(items) {
+      var box = $("rawmat-norecipe-list");
+      if (!items.length) { box.innerHTML = '<div style="text-align:center; color:var(--green); padding:15px; font-size:13px; grid-column:1/-1;">✅ Every Master item has a matching recipe.</div>'; return; }
+      var html = "";
+      items.forEach(function(name){
+        html += `<div class="dash-row"><div class="dash-row-top"><span class="dash-row-name">${name}</span><span class="dash-row-loc" style="background:var(--terracotta-soft); color:var(--terracotta);">No Recipe</span></div></div>`;
+      });
       box.innerHTML = html;
     }
 
