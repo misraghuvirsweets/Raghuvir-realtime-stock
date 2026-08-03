@@ -11,7 +11,7 @@
     :root{
       --bg:#F3EDE2; --surface:#FFFFFF; --text:#261E16; --text-soft:#706254; --border:#DFD2BF;
       --green:#3D5E26; --green-soft:#DFE8D5; --terracotta:#A63C19; --terracotta-soft:#F5DFD6;
-      --navy:#2C4A5E; --navy-soft:#DCE6EA; --radius:16px;
+      --navy:#2C4A5E; --navy-soft:#DCE6EA; --gold:#96731E; --gold-soft:#F3E7C9; --radius:16px;
     }
     *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html,body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
@@ -34,7 +34,7 @@
     .menu-btn.inward{ background:var(--green); }
     .menu-btn.outward{ background:var(--terracotta); }
     .menu-btn.outmove{ background:var(--navy); }
-    .menu-btn.rawinward{ background:var(--green); }
+    .menu-btn.rawinward{ background:var(--gold); }
     .menu-btn:active{ transform: scale(0.97); opacity:0.95; }
     .menu-btn-title{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; }
     .inward-item-row{ display:grid; grid-template-columns:1fr auto 90px; align-items:center; gap:8px; padding:9px 0; border-bottom:1px dashed var(--border); }
@@ -45,19 +45,19 @@
       width:100%; padding:8px 9px; border:1px solid var(--border); border-radius:8px;
       font-size:13.5px; font-family:inherit; text-align:right; outline:none; background:#fff; color:var(--text);
     }
-    .inward-received-input:focus{ border-color:var(--green); }
+    .inward-received-input:focus{ border-color:var(--gold); }
     .inward-receiver-input{
       width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:10px;
       font-size:14px; font-family:inherit; background:#fff; color:var(--text); outline:none; box-sizing:border-box;
     }
-    .inward-receiver-input:focus{ border-color:var(--green); }
+    .inward-receiver-input:focus{ border-color:var(--gold); }
 
     .dashboard-panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
     .panel-head{ display:flex; align-items:center; gap:8px; padding:14px 16px; font-family:'Fraunces',serif; font-size:18px; font-weight:600; border-bottom:1px solid var(--border); }
     .dashboard-panel.inward .panel-head{ background:var(--green-soft); color:var(--green); }
     .dashboard-panel.outward .panel-head{ background:var(--terracotta-soft); color:var(--terracotta); }
     .dashboard-panel.outmove .panel-head{ background:var(--navy-soft); color:var(--navy); }
-    .dashboard-panel.rawinward .panel-head{ background:var(--green-soft); color:var(--green); }
+    .dashboard-panel.rawinward .panel-head{ background:var(--gold-soft); color:var(--gold); }
     .back-btn{ border:none; background:none; font-size:22px; cursor:pointer; color:inherit; padding:2px 8px; font-weight: bold; }
     .panel-body{ padding:16px; display:flex; flex-direction:column; gap:14px; }
 
@@ -302,12 +302,8 @@
 
     <div class="panel-body">
       <div id="inward-category-section">
-        <label class="history-section-label">Select Category</label>
-        <div class="manual-form-row">
-          <select id="inward-category-select" class="manual-form-select" onchange="loadInwardItemsForCategory()">
-            <option value="">Loading categories...</option>
-          </select>
-        </div>
+        <label class="history-section-label">Category</label>
+        <div style="font-size:13.5px; font-weight:700; color:var(--gold); background:var(--gold-soft); padding:11px 14px; border-radius:10px; display:inline-block;">Bakery</div>
       </div>
 
       <div id="inward-items-section" style="display:none;">
@@ -517,18 +513,16 @@
       $("menu-screen").hidden = false;
     }
 
-    /* ======================= RAW MATERIAL INWARD (from Purchased sheet) ======================= */
-    var inwardCategoriesLoaded = false;
+    /* ======================= RAW MATERIAL INWARD (from Purchase sheet, always Bakery category) ==== */
+    var INWARD_FIXED_CATEGORY = "Bakery"; // category is always locked to this — no manual picker
     var inwardItemsCache = [];
 
     function openInwardScreen() {
       $("menu-screen").hidden = true;
       $("inward-screen").hidden = false;
-      $("inward-items-section").style.display = "none";
-      $("inward-category-select").value = "";
       $("inward-receiver-name").value = "";
       setInwardStatus("", "");
-      if (!inwardCategoriesLoaded) loadInwardCategories();
+      loadInwardItemsForCategory();
     }
 
     function exitInwardScreen() {
@@ -538,27 +532,15 @@
 
     function setInwardStatus(msg, cls) { var el = $("inward-status-log"); el.innerText = msg; el.className = "status-msg-bar " + (cls || ""); }
 
-    function loadInwardCategories() {
-      inwardCategoriesLoaded = true;
-      google.script.run.withSuccessHandler(function(cats){
-        var sel = $("inward-category-select");
-        sel.innerHTML = '<option value="">Select a category...</option>';
-        (cats || []).forEach(function(c){ var opt = document.createElement("option"); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
-        if (!cats || !cats.length) setInwardStatus("No categories found in the Purchased sheet yet.", "error");
-      }).withFailureHandler(function(e){ setInwardStatus("Error loading categories: " + e.message, "error"); }).getPurchasedCategoriesWeb();
-    }
-
     function loadInwardItemsForCategory() {
-      var category = $("inward-category-select").value;
-      if (!category) { $("inward-items-section").style.display = "none"; return; }
       $("inward-items-list").innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">Loading items...</div>';
       $("inward-items-section").style.display = "block";
-      setInwardStatus("Loading purchased items for " + category + "...", "");
+      setInwardStatus("Loading purchased items for " + INWARD_FIXED_CATEGORY + "...", "");
       google.script.run.withSuccessHandler(function(items){
         inwardItemsCache = items || [];
         renderInwardItemsList(inwardItemsCache);
         setInwardStatus(inwardItemsCache.length + " item(s) loaded.", "success");
-      }).withFailureHandler(function(e){ setInwardStatus("Error loading items: " + e.message, "error"); }).getPurchasedItemsByCategoryWeb(category);
+      }).withFailureHandler(function(e){ setInwardStatus("Error loading items: " + e.message, "error"); }).getPurchasedItemsByCategoryWeb(INWARD_FIXED_CATEGORY);
     }
 
     function renderInwardItemsList(items) {
