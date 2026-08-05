@@ -334,6 +334,17 @@
     <div class="scanner-guide-box"></div>
   </div>
 
+  <div id="submit-confirm-backdrop" class="dashboard-popup-backdrop">
+    <div class="dashboard-popup-card">
+      <h3 class="popup-item-title">Confirm Submission</h3>
+      <div id="submit-confirm-message" style="font-size:14.5px; line-height:1.6; color:var(--text); padding:4px 2px 10px;"></div>
+      <div class="popup-action-column">
+        <button class="popup-action-btn done" id="submit-confirm-yes-btn" type="button" onclick="confirmSubmitBatch()">🚀 Yes, Submit</button>
+        <button class="popup-action-btn cancel" type="button" onclick="closeSubmitConfirmModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div id="dashboard-popup-backdrop" class="dashboard-popup-backdrop">
     <div class="dashboard-popup-card">
       <h3 id="pop-product-name" class="popup-item-title">Product Description</h3>
@@ -942,24 +953,50 @@
       updateManualSummary();
     }
 
+    var pendingSubmitConfirmMsg = null;
+
     function submitEntireDeskBatch() {
       if (centralBatchCollection.length === 0) { setLogStatus("Staging batch is empty.", "error"); return; }
       var confirmMsg;
       if (currentActiveMode === "in") {
-        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be increased (+) at Savali Factory for each item.";
+        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?<br><br>Stock will be increased (+) at Savali Factory for each item.";
       } else if (currentActiveMode === "outmove") {
-        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be reduced (-) at Savali Factory immediately as an Outward movement — no branch or receiving confirmation involved.";
+        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?<br><br>Stock will be reduced (-) at Savali Factory immediately as an Outward movement — no branch or receiving confirmation involved.";
       } else {
-        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?\n\nStock will be reduced (-) at Savali Factory immediately, and will show as PENDING for " + selectedBranchName + " until they confirm receipt on their Branch Dashboard.";
+        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?<br><br>Stock will be reduced (-) at Savali Factory immediately, and will show as PENDING for " + selectedBranchName + " until they confirm receipt on their Branch Dashboard.";
       }
-      if (!confirm(confirmMsg)) return;
+      pendingSubmitConfirmMsg = confirmMsg;
+      $("submit-confirm-message").innerHTML = confirmMsg;
+      $("submit-confirm-yes-btn").disabled = false;
+      $("submit-confirm-yes-btn").innerText = "🚀 Yes, Submit";
+      $("submit-confirm-backdrop").classList.add("open");
+    }
+
+    function closeSubmitConfirmModal() {
+      $("submit-confirm-backdrop").classList.remove("open");
+      pendingSubmitConfirmMsg = null;
+    }
+
+    function confirmSubmitBatch() {
+      // Disable immediately on tap — this is the first line of defense against accidental
+      // double/triple taps (the server-side duplicate check in saveBatchTransactionsWeb is the
+      // real safety net, but not re-firing the request at all is even better when possible).
+      var yesBtn = $("submit-confirm-yes-btn");
+      yesBtn.disabled = true;
+      yesBtn.innerText = "Submitting...";
 
       setLogStatus("Uploading batch...", "");
       var batchSnapshot = centralBatchCollection.slice();
       var dispatchBranchSnapshot = selectedBranchName;
 
       google.script.run.withSuccessHandler(function(res){
+        $("submit-confirm-backdrop").classList.remove("open");
         if (res && res.success) {
+          if (res.duplicate) {
+            alert("Already Submitted\n\nThis exact batch was already saved a moment ago — it was not saved again, so nothing has been duplicated.");
+            centralBatchCollection = []; refreshHistoryLogDisplay(); exitDashboardScreen();
+            return;
+          }
           if (currentActiveMode === "out") showChallanPreview(batchSnapshot, dispatchBranchSnapshot, res.challanNo || '');
           else {
             var allWarnings = [].concat(res.imsWarnings || [], res.outwardWarnings || []);
@@ -971,8 +1008,15 @@
             alert(msg);
             centralBatchCollection = []; refreshHistoryLogDisplay(); exitDashboardScreen();
           }
-        } else setLogStatus("Save failed: " + (res && res.error ? res.error : "unknown error"), "error");
-      }).withFailureHandler(function(e){ setLogStatus("Submission error: " + e.message, "error"); }).saveBatchTransactionsWeb(centralBatchCollection);
+        } else {
+          setLogStatus("Save failed: " + (res && res.error ? res.error : "unknown error"), "error");
+          yesBtn.disabled = false; yesBtn.innerText = "🚀 Yes, Submit";
+        }
+      }).withFailureHandler(function(e){
+        setLogStatus("Submission error: " + e.message, "error");
+        $("submit-confirm-backdrop").classList.remove("open");
+        yesBtn.disabled = false; yesBtn.innerText = "🚀 Yes, Submit";
+      }).saveBatchTransactionsWeb(centralBatchCollection);
     }
 
     var pendingChallanItems = null, pendingChallanBranch = null, pendingChallanNo = null;
