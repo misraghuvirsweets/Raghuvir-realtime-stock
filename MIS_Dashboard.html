@@ -12,6 +12,7 @@
       --bg:#F3EDE2; --surface:#FFFFFF; --text:#261E16; --text-soft:#706254; --border:#DFD2BF;
       --navy:#2C4A5E; --navy-soft:#DCE6EA; --gold:#96731E; --gold-soft:#F3E7C9;
       --green:#3D5E26; --green-soft:#DFE8D5; --terracotta:#A63C19; --terracotta-soft:#F5DFD6;
+      --brown:#7A4A21; --brown-soft:#EDE0D0;
       --radius:16px;
     }
     *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -94,6 +95,8 @@
     .txn-qty-change.disp{ color:var(--terracotta); background:var(--terracotta-soft); }
     .txn-qty-change.sale{ color:var(--gold); background:var(--gold-soft); }
     .txn-qty-change.outw{ color:var(--navy); background:var(--navy-soft); }
+    .txn-type-tag.cons{ color:var(--brown); }
+    .txn-qty-change.cons{ color:var(--brown); background:var(--brown-soft); }
 
     .diag-line{ font-size:12px; color:var(--text-soft); line-height:1.7; }
     .diag-line b{ color:var(--navy); }
@@ -154,7 +157,7 @@
         </div>
         <div class="filter-row">
           <select id="rec-type-filter" class="filter-select" onchange="handleRecTypeChange()">
-            <option value="All">All Types</option><option value="PRODUCTION">Production</option><option value="DISPATCH">Dispatch</option><option value="OUTWARD">Outward</option><option value="SALE">Sale</option>
+            <option value="All">All Types</option><option value="PRODUCTION">Production</option><option value="DISPATCH">Dispatch</option><option value="OUTWARD">Outward</option><option value="CONSUMPTION">Consumption</option><option value="SALE">Sale</option>
           </select>
           <select id="rec-location-filter" class="filter-select">
             <option value="All">All Locations</option><option value="Savali Factory">Savali Factory</option>
@@ -400,14 +403,23 @@
         .getItemHistoryWeb(barcode, name);
     }
 
+    var TXN_TYPE_STYLE = {
+      PRODUCTION: { cls: "prod", icon: "⬆ PRODUCTION" },
+      DISPATCH: { cls: "disp", icon: "⬇ DISPATCH" },
+      OUTWARD: { cls: "outw", icon: "↘ OUTWARD" },
+      CONSUMPTION: { cls: "cons", icon: "🍽️ CONSUMPTION" },
+      SALE: { cls: "sale", icon: "🛍️ SALE" }
+    };
+    function txnTypeStyle_(type) { return TXN_TYPE_STYLE[type] || { cls: "sale", icon: type }; }
+
     function renderItemHistory(historyList) {
       var box = $("history-list");
-      if (!historyList || historyList.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No PRODUCTION/DISPATCH/OUTWARD transactions recorded yet for this item (branch POS sales appear in the Sales tab instead).</div>'; return; }
+      if (!historyList || historyList.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No PRODUCTION/DISPATCH/OUTWARD/CONSUMPTION transactions recorded yet for this item (branch POS sales appear in the Sales tab instead).</div>'; return; }
       var html = "";
       for (var i = 0; i < historyList.length; i++) {
         var txn = historyList[i];
-        var cls = txn.type === "PRODUCTION" ? "prod" : (txn.type === "DISPATCH" ? "disp" : (txn.type === "OUTWARD" ? "outw" : "sale"));
-        var icon = txn.type === "PRODUCTION" ? "⬆ PRODUCTION" : (txn.type === "DISPATCH" ? "⬇ DISPATCH" : (txn.type === "OUTWARD" ? "↘ OUTWARD" : "🛍️ SALE"));
+        var style = txnTypeStyle_(txn.type);
+        var cls = style.cls, icon = style.icon;
         var sign = txn.type === "PRODUCTION" ? "+" : "-";
         var branchLine = txn.branch ? (" | Branch: " + txn.branch) : "";
         var valueLine = txn.value ? (" | ₹" + Number(txn.value).toLocaleString('en-IN')) : "";
@@ -433,7 +445,7 @@
     function handleRecTypeChange() {
       var type = $("rec-type-filter").value;
       var locSel = $("rec-location-filter");
-      if (type === 'PRODUCTION' || type === 'OUTWARD') { locSel.value = 'Savali Factory'; locSel.disabled = true; }
+      if (type === 'PRODUCTION' || type === 'OUTWARD' || type === 'CONSUMPTION') { locSel.value = 'Savali Factory'; locSel.disabled = true; }
       else locSel.disabled = false;
     }
 
@@ -456,7 +468,7 @@
       if (!rows || rows.length === 0) { box.innerHTML = '<div style="text-align:center; color:#888; padding:15px; font-size:13px;">No matching rows.</div>'; return; }
       var html = "";
       rows.forEach(function(r){
-        var cls = r.type === "PRODUCTION" ? "prod" : (r.type === "DISPATCH" ? "disp" : (r.type === "OUTWARD" ? "outw" : "sale"));
+        var cls = txnTypeStyle_(r.type).cls;
         var recTag = r.receivedStatus === "Pending" ? ' <span style="color:var(--terracotta); font-weight:700;">(Pending)</span>' : (r.receivedStatus === "Received" ? ' <span style="color:var(--green); font-weight:700;">(Received)</span>' : '');
         html += `<div class="txn-row"><div class="txn-left"><span class="txn-type-tag ${cls}">${r.type}</span><span style="color:var(--text-soft); font-size:11px;">${r.timestamp} | ${r.product}${r.branch ? ' | ' + r.branch : ''}${recTag}</span></div><span class="txn-qty-change ${cls}">${r.qty}</span></div>`;
       });
@@ -545,7 +557,7 @@
         if (res.ready) el.textContent = 'WhatsApp (WATI) config looks ready.';
         else {
           var missing = [];
-          if (!res.endpointOk) missing.push('endpoint'); if (!res.tokenOk) missing.push('access token'); if (!res.templateOk) missing.push('template name'); if (!res.ownerPhoneOk) missing.push('owner phone number');
+          if (!res.endpointOk) missing.push('endpoint'); if (!res.tokenOk) missing.push('access token'); if (!res.pdfTemplateOk) missing.push('PDF template name (WATI_PDF_TEMPLATE_NAME)'); if (!res.ownerPhoneOk) missing.push('owner phone number');
           el.textContent = 'WhatsApp (WATI) config incomplete: fill in ' + missing.join(', ') + ' in the WhatsApp_Config sheet.';
         }
       }).dashboardWhatsAppConfigStatus();
