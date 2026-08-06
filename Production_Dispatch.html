@@ -11,7 +11,8 @@
     :root{
       --bg:#F3EDE2; --surface:#FFFFFF; --text:#261E16; --text-soft:#706254; --border:#DFD2BF;
       --green:#3D5E26; --green-soft:#DFE8D5; --terracotta:#A63C19; --terracotta-soft:#F5DFD6;
-      --navy:#2C4A5E; --navy-soft:#DCE6EA; --gold:#96731E; --gold-soft:#F3E7C9; --radius:16px;
+      --navy:#2C4A5E; --navy-soft:#DCE6EA; --gold:#96731E; --gold-soft:#F3E7C9;
+      --brown:#7A4A21; --brown-soft:#EDE0D0; --radius:16px;
     }
     *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html,body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
@@ -24,20 +25,37 @@
     .nav-links{ text-align:center; margin-top:8px; }
     .nav-links a{ font-size:12.5px; font-weight:700; color:var(--navy); text-decoration:none; background:var(--navy-soft); padding:7px 12px; border-radius:8px; }
 
-    #menu-screen{ display:flex; flex-direction:column; gap:12px; margin-top:10px; }
-    #menu-top-row{ display:flex; gap:12px; flex-wrap:wrap; }
+    #menu-screen{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+    #menu-top-row, #menu-bottom-row{ display:flex; gap:10px; flex-wrap:wrap; }
     .menu-btn{
       display:flex; flex-direction:column; align-items:center; justify-content:center;
-      padding:26px 10px; border:none; border-radius:var(--radius); cursor:pointer; color:#fff; flex:1 1 200px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.06); transition: all 0.2s;
+      padding:20px 8px; border:none; border-radius:var(--radius); cursor:pointer; color:#fff;
+      flex:1 1 100px; min-width:96px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); transition: all 0.2s;
     }
     .menu-btn.inward{ background:var(--green); }
     .menu-btn.outward{ background:var(--terracotta); }
     .menu-btn.outmove{ background:var(--navy); }
     .menu-btn.rawinward{ background:var(--gold); }
+    .menu-btn.consumption{ background:var(--brown); }
     .menu-btn:active{ transform: scale(0.97); opacity:0.95; }
-    .menu-btn-title{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; }
+    .menu-btn-title{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; text-align:center; line-height:1.25; }
+    @media (min-width:420px){
+      .menu-btn{ padding:24px 10px; flex:1 1 130px; }
+      .menu-btn-title{ font-size:17px; }
+    }
+    @media (min-width:900px){
+      .menu-btn{ padding:28px 12px; }
+      .menu-btn-title{ font-size:18px; }
+      #menu-bottom-row .menu-btn{ flex:0 1 260px; } /* Outward/Inward don't stretch full-width on wide screens */
+    }
     .inward-item-row{ display:grid; grid-template-columns:1fr auto auto 90px; align-items:center; gap:8px; padding:9px 0; border-bottom:1px dashed var(--border); }
+    @media (max-width:400px){
+      .inward-item-row{ grid-template-columns:1fr auto; grid-template-areas:"name name" "date qty" "input input"; row-gap:4px; }
+      .inward-item-row > span:nth-child(1){ grid-area:name; }
+      .inward-item-row > span:nth-child(2){ grid-area:date; }
+      .inward-item-row > span:nth-child(3){ grid-area:qty; text-align:right; }
+      .inward-item-row > input{ grid-area:input; }
+    }
     .inward-item-row:last-child{ border-bottom:none; }
     .inward-purchased-tag{ font-size:11.5px; color:var(--text-soft); white-space:nowrap; }
     .inward-purchased-tag b{ color:var(--text); }
@@ -58,6 +76,9 @@
     .dashboard-panel.outward .panel-head{ background:var(--terracotta-soft); color:var(--terracotta); }
     .dashboard-panel.outmove .panel-head{ background:var(--navy-soft); color:var(--navy); }
     .dashboard-panel.rawinward .panel-head{ background:var(--gold-soft); color:var(--gold); }
+    .dashboard-panel.consumption .panel-head{ background:var(--brown-soft); color:var(--brown); }
+    .dashboard-panel.consumption .giant-scan-box { color: var(--brown); border-color: var(--brown); background: var(--brown-soft); }
+    .dashboard-panel.consumption .manual-item-qty-input.touched{ border-color:var(--brown); }
     .back-btn{ border:none; background:none; font-size:22px; cursor:pointer; color:inherit; padding:2px 8px; font-weight: bold; }
     .panel-body{ padding:16px; display:flex; flex-direction:column; gap:14px; }
 
@@ -231,6 +252,8 @@
         <button class="menu-btn outward" type="button" onclick="openDashboardScreen('out')">
           <span class="menu-btn-title">Dispatch (DISP)</span>
         </button>
+      </div>
+      <div id="menu-bottom-row">
         <button class="menu-btn outmove" type="button" onclick="openDashboardScreen('outmove')">
           <span class="menu-btn-title">Outward (OUT)</span>
         </button>
@@ -494,8 +517,11 @@
       selectedBranchName = null;
       $("menu-screen").hidden = true;
       $("desk-dashboard").hidden = false;
-      $("desk-dashboard").className = "dashboard-panel " + (mode === "in" ? "inward" : (mode === "outmove" ? "outmove" : "outward"));
-      $("dashboard-title-label").innerText = mode === "in" ? "Production Dashboard Unit" : (mode === "outmove" ? "Outward Dashboard Unit" : "Dispatch Dashboard Unit");
+
+      var modeClassMap = { "in": "inward", "out": "outward", "outmove": "outmove", "consumption": "consumption" };
+      var modeTitleMap = { "in": "Production Dashboard Unit", "out": "Dispatch Dashboard Unit", "outmove": "Outward Dashboard Unit", "consumption": "Consumption Dashboard Unit (Nasta)" };
+      $("desk-dashboard").className = "dashboard-panel " + (modeClassMap[mode] || "outward");
+      $("dashboard-title-label").innerText = modeTitleMap[mode] || "Dashboard Unit";
 
       $("manual-entry-panel").style.display = "none";
       $("scan-box-wrapper").style.display = "flex";
@@ -792,9 +818,16 @@
       else if (actionType === 'done') setLogStatus("Item added. Batch staging screen active.", "success");
     }
 
+    // Central place mapping the active screen mode to its Inventory_Log Type — add any future
+    // mode here once, instead of repeating a ternary chain at every call site.
+    function typeForActiveMode_() {
+      var map = { "in": "PRODUCTION", "out": "DISPATCH", "outmove": "OUTWARD", "consumption": "CONSUMPTION" };
+      return map[currentActiveMode] || "DISPATCH";
+    }
+
     function commitPayloadEntryToStaging(quantityToLog) {
       var itemObject = {
-        type: (currentActiveMode === "in") ? "PRODUCTION" : (currentActiveMode === "outmove" ? "OUTWARD" : "DISPATCH"),
+        type: typeForActiveMode_(),
         barcode: currentScannedPayload.barcode, category: currentScannedPayload.category, product: currentScannedPayload.product,
         qty: quantityToLog, branch: (currentActiveMode === "out") ? selectedBranchName : ""
       };
@@ -930,7 +963,7 @@
       var barcode = inputEl.getAttribute("data-barcode");
       var product = inputEl.getAttribute("data-product");
       var category = inputEl.getAttribute("data-category");
-      var type = (currentActiveMode === "in") ? "PRODUCTION" : (currentActiveMode === "outmove" ? "OUTWARD" : "DISPATCH");
+      var type = typeForActiveMode_();
       var qty = parseFloat(inputEl.value);
 
       var existingIndex = -1;
@@ -960,6 +993,8 @@
       var confirmMsg;
       if (currentActiveMode === "in") {
         confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?<br><br>Stock will be increased (+) at Savali Factory for each item.";
+      } else if (currentActiveMode === "consumption") {
+        confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?<br><br>Stock will be reduced (-) at Savali Factory immediately as staff Consumption (nasta) — no branch or receiving confirmation involved.";
       } else if (currentActiveMode === "outmove") {
         confirmMsg = "Push this batch of " + centralBatchCollection.length + " item(s)?<br><br>Stock will be reduced (-) at Savali Factory immediately as an Outward movement — no branch or receiving confirmation involved.";
       } else {
