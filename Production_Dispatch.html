@@ -341,7 +341,7 @@
         <label class="history-section-label" style="margin-top:10px;">Receiver's Name</label>
         <input id="inward-receiver-name" class="inward-receiver-input" type="text" placeholder="Enter the name of the person who received this stock">
 
-        <button class="master-submit-btn" type="button" onclick="submitInwardReceiving()">💾 Save Inward Receiving</button>
+        <button class="master-submit-btn" id="inward-save-btn" type="button" onclick="submitInwardReceiving()">💾 Save Inward Receiving</button>
       </div>
 
       <div id="inward-status-log" class="status-msg-bar"></div>
@@ -617,17 +617,34 @@
 
       if (!confirm("Save Inward receiving for " + payload.length + " item(s), received by " + receiverName + "?")) return;
 
+      // Disable immediately on confirm — first line of defense against accidental double-taps
+      // (a network hiccup, or tapping twice before the UI visibly responds). The server-side
+      // duplicate check in saveInwardReceivingWeb is the real safety net either way.
+      var saveBtn = $("inward-save-btn");
+      saveBtn.disabled = true;
+      saveBtn.innerText = "Saving...";
+
       setInwardStatus("Saving...", "");
       google.script.run
         .withSuccessHandler(function(res){
+          saveBtn.disabled = false;
+          saveBtn.innerText = "💾 Save Inward Receiving";
           if (res && res.success) {
+            if (res.duplicate) {
+              alert("Already Submitted\n\nThis exact Inward batch was already saved a moment ago — it was not saved again, so nothing has been duplicated.");
+              return;
+            }
             setInwardStatus((res.updatedCount || 0) + " material(s) updated, " + (res.addedCount || 0) + " new material(s) added to IMS.", "success");
             alert("Inward receiving saved! Raw material stock updated.");
             $("inward-receiver-name").value = "";
             loadInwardItemsForCategory(); // refresh so purchased/current figures reflect the save
           } else setInwardStatus("Save failed: " + (res && res.error ? res.error : "unknown error"), "error");
         })
-        .withFailureHandler(function(e){ setInwardStatus("Submission error: " + e.message, "error"); })
+        .withFailureHandler(function(e){
+          saveBtn.disabled = false;
+          saveBtn.innerText = "💾 Save Inward Receiving";
+          setInwardStatus("Submission error: " + e.message, "error");
+        })
         .saveInwardReceivingWeb(payload, receiverName);
     }
 
